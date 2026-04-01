@@ -10,6 +10,8 @@ export interface ServerConfig {
   apiSecret: string;
   /** Datto RMM platform */
   platform: Platform;
+  /** Optional log file path */
+  logFilePath?: string;
 }
 
 /**
@@ -51,11 +53,13 @@ function parsePlatform(value: string | undefined): Platform {
  *
  * Optional environment variables:
  * - DATTO_PLATFORM: Platform name (default: merlot)
+ * - DATTO_LOG_FILE: Path to log file for debugging
  */
 export function loadConfig(): ServerConfig {
   const apiKey = process.env['DATTO_API_KEY'];
   const apiSecret = process.env['DATTO_API_SECRET'];
   const platformStr = process.env['DATTO_PLATFORM'];
+  const logFilePath = process.env['DATTO_LOG_FILE'];
 
   if (!apiKey) {
     throw new Error('DATTO_API_KEY environment variable is required');
@@ -69,5 +73,6 @@ export function loadConfig(): ServerConfig {
     apiKey,
     apiSecret,
     platform: parsePlatform(platformStr),
+    logFilePath,
   };
 }

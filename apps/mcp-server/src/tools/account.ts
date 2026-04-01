@@ -57,6 +57,7 @@ export async function listSites(
         },
       },
     });
+
     const data = handleResponse<T.SitesPage>(response);
 
     if (!data.sites || data.sites.length === 0) {

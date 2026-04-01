@@ -79,8 +79,12 @@ export class OAuthTokenManager {
   async refreshToken(): Promise<string> {
     // Use password grant with public-client credentials
     const clientAuth = btoa('public-client:public');
-    const username = encodeURIComponent(this.credentials.apiKey);
-    const password = encodeURIComponent(this.credentials.apiSecret);
+
+    const params = new URLSearchParams({
+      grant_type: 'password',
+      username: this.credentials.apiKey,
+      password: this.credentials.apiSecret,
+    });
 
     const response = await fetch(this.tokenEndpoint, {
       method: 'POST',
@@ -88,7 +92,7 @@ export class OAuthTokenManager {
         'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: `Basic ${clientAuth}`,
       },
-      body: `grant_type=password&username=${username}&password=${password}`,
+      body: params.toString(),
     });
 
     if (!response.ok) {

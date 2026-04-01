@@ -49,6 +49,9 @@ let platforms = [
     Platform::Vidal,     // https://vidal-api.centrastage.net/api
     Platform::Zinfandel, // https://zinfandel-api.centrastage.net/api
     Platform::Syrah,     // https://syrah-api.centrastage.net/api
+    Platform::Sandbox,   // https://sandbox-api.centrastage.net/api (shared sandbox)
+    Platform::Devb,      // https://devb-api.centrastage.net/api (dev/test)
+    Platform::Staging,   // https://staging-api.centrastage.net/api (staging)
 ];
 
 // Parse from string
@@ -57,11 +60,17 @@ let platform: Platform = "merlot".parse()?;
 
 ## Authentication
 
-The client automatically handles OAuth 2.0 token management:
+The client uses OAuth 2.0 password grant flow with automatic token management:
 
+- Uses password grant flow (`grant_type=password`)
+- Client credentials: `public-client:public`
+- Your API key/secret are sent as username/password
 - Tokens are cached and reused
 - Automatic refresh before expiry (5 minute buffer)
 - Thread-safe token state management
+
+**Note**: Your credentials should be REST API user credentials from User Profile → API Settings, 
+not OAuth application credentials.
 
 ```rust
 use datto_api::{DattoClient, Platform, Credentials};

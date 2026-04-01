@@ -126,6 +126,9 @@ The Datto RMM API is available on multiple regional platforms:
 | Vidal | `https://vidal-api.centrastage.net/api` |
 | Zinfandel | `https://zinfandel-api.centrastage.net/api` |
 | Syrah | `https://syrah-api.centrastage.net/api` |
+| Sandbox | `https://sandbox-api.centrastage.net/api` |
+| Devb | `https://devb-api.centrastage.net/api` |
+| Staging | `https://staging-api.centrastage.net/api` |
 
 ## Environment Variables
 

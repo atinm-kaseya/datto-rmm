@@ -8,11 +8,15 @@ use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
 /// OAuth 2.0 credentials for the Datto RMM API.
+///
+/// These should be your REST API user credentials from User Profile → API Settings.
+/// The password grant flow uses `public-client:public` as the client credentials,
+/// with your API key/secret as the username/password.
 #[derive(Debug, Clone)]
 pub struct Credentials {
-    /// API Key (client ID)
+    /// API Key (username for password grant)
     pub api_key: String,
-    /// API Secret (client secret)
+    /// API Secret (password for password grant)
     pub api_secret: String,
 }
 
@@ -106,15 +110,22 @@ impl DattoClient {
 
     /// Force a token refresh.
     async fn refresh_token(&self) -> Result<String, Error> {
-        let credentials =
-            BASE64.encode(format!("{}:{}", self.credentials.api_key, self.credentials.api_secret));
+        // Use password grant with public-client credentials
+        let client_auth = BASE64.encode("public-client:public");
+
+        // URL-encode the username and password
+        let body = format!(
+            "grant_type=password&username={}&password={}",
+            urlencoding::encode(&self.credentials.api_key),
+            urlencoding::encode(&self.credentials.api_secret)
+        );
 
         let response = self
             .http_client
             .post(self.platform.token_endpoint())
             .header("Content-Type", "application/x-www-form-urlencoded")
-            .header("Authorization", format!("Basic {}", credentials))
-            .body("grant_type=client_credentials")
+            .header("Authorization", format!("Basic {}", client_auth))
+            .body(body)
             .send()
             .await
             .map_err(Error::HttpClient)?;
