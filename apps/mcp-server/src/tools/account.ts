@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
 import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -32,7 +32,7 @@ export async function getAccount(client: DattoClient): Promise<ToolResult> {
       lines.push(`- **Time Zone:** ${data.descriptor.timeZone ?? 'N/A'}`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching account: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -79,7 +79,7 @@ export async function listSites(
       const deviceCount = site.devicesStatus?.numberOfDevices ?? 0;
       const onlineCount = site.devicesStatus?.numberOfOnlineDevices ?? 0;
       lines.push(`## ${site.name}`);
-      lines.push(`- **UID:** ${site.uid}`);
+      lines.push(`- **Site UID:** \`${site.uid}\` _(use with get-site)_`);
       lines.push(`- **Devices:** ${deviceCount} (${onlineCount} online)`);
       if (site.description) {
         lines.push(`- **Description:** ${site.description}`);
@@ -91,7 +91,7 @@ export async function listSites(
       lines.push(`_Use page=${pageInfo.page + 1} to see more results_`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing sites: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -148,7 +148,7 @@ export async function listDevices(
     for (const device of data.devices) {
       const status = device.online ? 'Online' : 'Offline';
       lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **UID:** ${device.uid}`);
+      lines.push(`- **Device UID:** \`${device.uid}\` _(use with get-device)_`);
       lines.push(`- **Status:** ${status}`);
       lines.push(`- **Site:** ${device.siteName ?? 'N/A'}`);
       lines.push(`- **Type:** ${device.deviceType?.type ?? 'N/A'}`);
@@ -163,7 +163,7 @@ export async function listDevices(
       lines.push(`_Use page=${pageInfo.page + 1} to see more results_`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing devices: ${err instanceof Error ? err.message : String(err)}`);
   }

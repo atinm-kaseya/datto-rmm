@@ -1,5 +1,5 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { handleResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -18,7 +18,7 @@ export async function getSystemStatus(client: DattoClient): Promise<ToolResult> 
       `**Started:** ${data.started ?? 'N/A'}`,
     ];
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching system status: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -42,7 +42,7 @@ export async function getRateLimit(client: DattoClient): Promise<ToolResult> {
       `**Cut Off Ratio:** ${data.accountCutOffRatio ?? 'N/A'}`,
     ];
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching rate limit: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -62,7 +62,7 @@ export async function getPaginationConfig(client: DattoClient): Promise<ToolResu
       `**Max Page Size:** ${data.max ?? 'N/A'}`,
     ];
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching pagination config: ${err instanceof Error ? err.message : String(err)}`);
   }

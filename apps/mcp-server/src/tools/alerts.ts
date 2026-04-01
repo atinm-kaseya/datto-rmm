@@ -1,5 +1,5 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { handleResponse, handleVoidResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, handleVoidResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -23,9 +23,9 @@ export async function getAlert(client: DattoClient, args: { alertUid: string }):
       '',
       '## Device Information',
       `- **Device Name:** ${data.alertSourceInfo?.deviceName ?? 'N/A'}`,
-      `- **Device UID:** ${data.alertSourceInfo?.deviceUid ?? 'N/A'}`,
+      `- **Device UID:** \`${data.alertSourceInfo?.deviceUid ?? 'N/A'}\` _(use with get-device)_`,
       `- **Site Name:** ${data.alertSourceInfo?.siteName ?? 'N/A'}`,
-      `- **Site UID:** ${data.alertSourceInfo?.siteUid ?? 'N/A'}`,
+      `- **Site UID:** \`${data.alertSourceInfo?.siteUid ?? 'N/A'}\` _(use with get-site)_`,
       '',
       '## Timing',
       `- **Created:** ${data.timestamp ?? 'N/A'}`,
@@ -45,7 +45,7 @@ export async function getAlert(client: DattoClient, args: { alertUid: string }):
       lines.push(JSON.stringify(data.alertContext, null, 2));
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching alert: ${err instanceof Error ? err.message : String(err)}`);
   }

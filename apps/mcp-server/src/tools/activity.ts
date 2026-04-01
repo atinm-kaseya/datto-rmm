@@ -1,5 +1,5 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { handleResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -78,7 +78,7 @@ export async function getActivityLogs(
       lines.push('_More results available. Use pagination to see more._');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching activity logs: ${err instanceof Error ? err.message : String(err)}`);
   }

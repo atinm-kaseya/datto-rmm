@@ -1,5 +1,5 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { handleVoidResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleVoidResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 
 /**
  * Create an account variable.

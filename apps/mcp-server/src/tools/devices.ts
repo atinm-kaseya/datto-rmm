@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
 import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, handleVoidResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, handleVoidResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -56,7 +56,7 @@ export async function getDevice(client: DattoClient, args: { deviceUid: string }
       lines.push(`**Portal URL:** ${data.portalUrl}`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching device: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -86,7 +86,7 @@ export async function getDeviceById(client: DattoClient, args: { deviceId: numbe
       `**Type:** ${data.deviceType?.type ?? 'N/A'}`,
     ];
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching device: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -118,14 +118,14 @@ export async function getDeviceByMac(client: DattoClient, args: { macAddress: st
     for (const device of data) {
       const status = device.online ? 'Online' : 'Offline';
       lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **UID:** ${device.uid}`);
+      lines.push(`- **Device UID:** \`${device.uid}\` _(use with get-device)_`);
       lines.push(`- **Status:** ${status}`);
       lines.push(`- **Site:** ${device.siteName ?? 'N/A'}`);
       lines.push(`- **OS:** ${device.operatingSystem ?? 'N/A'}`);
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching device: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -165,6 +165,7 @@ export async function listDeviceOpenAlerts(
 
     for (const alert of data.alerts) {
       lines.push(`## Alert ${alert.alertUid}`);
+      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with get-alert or resolve-alert)_`);
       lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
       lines.push(`- **Created:** ${alert.timestamp ?? 'N/A'}`);
       if (alert.diagnostics) {
@@ -173,7 +174,7 @@ export async function listDeviceOpenAlerts(
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing device alerts: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -212,12 +213,13 @@ export async function listDeviceResolvedAlerts(
 
     for (const alert of data.alerts) {
       lines.push(`## Alert ${alert.alertUid}`);
+      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with get-alert)_`);
       lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
       lines.push(`- **Resolved:** ${alert.resolvedOn ?? 'N/A'}`);
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing device resolved alerts: ${err instanceof Error ? err.message : String(err)}`);
   }

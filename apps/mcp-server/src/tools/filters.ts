@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
 import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -35,14 +35,14 @@ export async function listDefaultFilters(
 
     for (const filter of data.filters) {
       lines.push(`## ${filter.name ?? 'Unknown'}`);
-      lines.push(`- **ID:** ${filter.id}`);
+      lines.push(`- **Filter ID:** \`${filter.id}\` _(use with list-devices filterId parameter)_`);
       if (filter.description) {
         lines.push(`- **Description:** ${filter.description}`);
       }
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing default filters: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -80,14 +80,14 @@ export async function listCustomFilters(
 
     for (const filter of data.filters) {
       lines.push(`## ${filter.name ?? 'Unknown'}`);
-      lines.push(`- **ID:** ${filter.id}`);
+      lines.push(`- **Filter ID:** \`${filter.id}\` _(use with list-devices filterId parameter)_`);
       if (filter.description) {
         lines.push(`- **Description:** ${filter.description}`);
       }
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing custom filters: ${err instanceof Error ? err.message : String(err)}`);
   }

@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
 import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -24,7 +24,7 @@ export async function getJob(client: DattoClient, args: { jobUid: string }): Pro
       `**Created:** ${data.dateCreated ?? 'N/A'}`,
     ];
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching job: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -73,7 +73,7 @@ export async function getJobComponents(
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching job components: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -120,7 +120,7 @@ export async function getJobResults(
       }
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching job results: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -165,7 +165,7 @@ export async function getJobStdout(
 
     lines.push('```');
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching job stdout: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -210,7 +210,7 @@ export async function getJobStderr(
 
     lines.push('```');
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching job stderr: ${err instanceof Error ? err.message : String(err)}`);
   }

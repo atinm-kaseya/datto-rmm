@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
 import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, handleVoidResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, handleVoidResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -47,7 +47,7 @@ export async function getSite(client: DattoClient, args: { siteUid: string }): P
       lines.push(`**Portal URL:** ${data.portalUrl}`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching site: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -93,7 +93,7 @@ export async function listSiteDevices(
     for (const device of data.devices) {
       const status = device.online ? 'Online' : 'Offline';
       lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **UID:** ${device.uid}`);
+      lines.push(`- **Device UID:** \`${device.uid}\` _(use with get-device)_`);
       lines.push(`- **Status:** ${status}`);
       lines.push(`- **Type:** ${device.deviceType?.type ?? 'N/A'}`);
       lines.push(`- **OS:** ${device.operatingSystem ?? 'N/A'}`);
@@ -104,7 +104,7 @@ export async function listSiteDevices(
       lines.push(`_Use page=${pageInfo.page + 1} to see more results_`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing site devices: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -144,13 +144,14 @@ export async function listSiteOpenAlerts(
 
     for (const alert of data.alerts) {
       lines.push(`## Alert ${alert.alertUid}`);
+      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with get-alert or resolve-alert)_`);
       lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
       lines.push(`- **Device:** ${alert.alertSourceInfo?.deviceName ?? 'N/A'}`);
       lines.push(`- **Created:** ${alert.timestamp ?? 'N/A'}`);
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing site alerts: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -189,13 +190,14 @@ export async function listSiteResolvedAlerts(
 
     for (const alert of data.alerts) {
       lines.push(`## Alert ${alert.alertUid}`);
+      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with get-alert)_`);
       lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
       lines.push(`- **Device:** ${alert.alertSourceInfo?.deviceName ?? 'N/A'}`);
       lines.push(`- **Resolved:** ${alert.resolvedOn ?? 'N/A'}`);
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing site resolved alerts: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -236,7 +238,7 @@ export async function listSiteVariables(
       lines.push(`- **${variable.name}:** ${value}${variable.masked ? ' (masked)' : ''}`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error listing site variables: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -269,7 +271,7 @@ export async function getSiteSettings(client: DattoClient, args: { siteUid: stri
       lines.push('No proxy settings configured');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching site settings: ${err instanceof Error ? err.message : String(err)}`);
   }

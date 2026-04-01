@@ -1,7 +1,7 @@
 import type { DattoClient } from 'datto-rmm-api';
 import { formatBytes } from '../utils/formatting.js';
 import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -110,7 +110,7 @@ export async function getDeviceAudit(client: DattoClient, args: { deviceUid: str
       lines.push(`**Portal URL:** ${data.portalUrl}`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching device audit: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -161,7 +161,7 @@ export async function getDeviceSoftware(
       lines.push(`_Use page=${pageInfo.page + 1} to see more results_`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching device software: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -198,7 +198,7 @@ export async function getDeviceAuditByMac(client: DattoClient, args: { macAddres
       lines.push('');
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching device audit: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -258,7 +258,7 @@ export async function getEsxiAudit(client: DattoClient, args: { deviceUid: strin
       lines.push(`**Portal URL:** ${data.portalUrl}`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching ESXi audit: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -321,7 +321,7 @@ export async function getPrinterAudit(client: DattoClient, args: { deviceUid: st
       lines.push(`**Portal URL:** ${data.portalUrl}`);
     }
 
-    return successResult(lines.join('\n'));
+    return successResultWithMetadata(lines.join('\n'));
   } catch (err) {
     return errorResult(`Error fetching printer audit: ${err instanceof Error ? err.message : String(err)}`);
   }
