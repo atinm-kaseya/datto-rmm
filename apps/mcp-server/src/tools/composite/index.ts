@@ -17,3 +17,10 @@ export { getDeviceHealth } from './get-device-health.js';
 export { diagnoseDeviceIssue } from './diagnose-device-issue.js';
 export { investigateAlert } from './investigate-alert.js';
 export { getAlertSummary } from './get-alert-summary.js';
+
+// Phase 3: Operations & Bulk Actions
+export { listSiteDevices } from './list-site-devices.js';
+export { getSiteAlerts } from './get-site-alerts.js';
+export { runSiteComponent } from './run-site-component.js';
+export { bulkUpdateSiteDevices } from './bulk-update-site-devices.js';
+export { getAccountAnalytics } from './get-account-analytics.js';

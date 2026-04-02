@@ -226,6 +226,163 @@ export const tools: ToolDefinition[] = [
     },
     handler: (client, args) => compositeTools.getAlertSummary(client, args as any),
   },
+  {
+    name: 'list-site-devices',
+    description: '🌟 [Tier 1] Browse and filter devices within a site. Supports filtering by status, type, and alert presence with multiple sort options.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        site: {
+          type: 'string',
+          description: 'Site identifier: name or UID',
+        },
+        status: {
+          type: 'string',
+          enum: ['online', 'offline', 'all'],
+          description: 'Filter by online status (default: all)',
+        },
+        type: {
+          type: 'string',
+          description: 'Filter by device type (desktop, laptop, server, etc.)',
+        },
+        has_alerts: {
+          type: 'boolean',
+          description: 'Only show devices with open alerts (default: false)',
+        },
+        sort_by: {
+          type: 'string',
+          enum: ['name', 'alerts', 'last_seen'],
+          description: 'Sort order (default: name)',
+        },
+      },
+      required: ['site'],
+    },
+    handler: (client, args) => compositeTools.listSiteDevices(client, args as any),
+  },
+  {
+    name: 'get-site-alerts',
+    description: '🌟 [Tier 1] Alert overview for a specific site. Groups alerts by device or type, shows severity breakdown, and provides remediation recommendations.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        site: {
+          type: 'string',
+          description: 'Site identifier: name or UID',
+        },
+        severity: {
+          type: 'string',
+          enum: ['critical', 'warning', 'all'],
+          description: 'Filter by severity (default: all)',
+        },
+        group_by: {
+          type: 'string',
+          enum: ['device', 'type'],
+          description: 'Group alerts by device or type (default: type)',
+        },
+      },
+      required: ['site'],
+    },
+    handler: (client, args) => compositeTools.getSiteAlerts(client, args as any),
+  },
+  {
+    name: 'run-site-component',
+    description: '🌟 [Tier 1] Execute a component (quick job, script) on devices within a site. Site-scoped for safety. Supports dry-run mode to preview before execution.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        site: {
+          type: 'string',
+          description: 'Site identifier: name or UID',
+        },
+        devices: {
+          oneOf: [
+            { type: 'string' },
+            { type: 'array', items: { type: 'string' } },
+          ],
+          description: 'Device selection: list of hostnames/UIDs or "all"',
+        },
+        component: {
+          type: 'string',
+          description: 'Component name or UID',
+        },
+        variables: {
+          type: 'object',
+          description: 'Component variables (optional)',
+        },
+        schedule: {
+          type: 'string',
+          description: 'Schedule: "now" or ISO datetime string (default: now)',
+        },
+        dry_run: {
+          type: 'boolean',
+          description: 'Preview only, don\'t execute (default: false)',
+        },
+      },
+      required: ['site', 'devices', 'component'],
+    },
+    handler: (client, args) => compositeTools.runSiteComponent(client, args as any),
+  },
+  {
+    name: 'bulk-update-site-devices',
+    description: '🌟 [Tier 1] Bulk update device properties (UDFs, warranty, description) across devices in a site. Site-scoped for safety. Supports dry-run mode.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        site: {
+          type: 'string',
+          description: 'Site identifier: name or UID',
+        },
+        devices: {
+          oneOf: [
+            { type: 'string' },
+            { type: 'array', items: { type: 'string' } },
+          ],
+          description: 'Device selection: list of hostnames/UIDs or "all"',
+        },
+        updates: {
+          type: 'object',
+          description: 'Updates to apply (description, warranty, udf, etc.)',
+          properties: {
+            description: { type: 'string' },
+            warranty: { type: 'string' },
+            udf: {
+              type: 'object',
+              description: 'User-defined fields',
+            },
+          },
+        },
+        dry_run: {
+          type: 'boolean',
+          description: 'Preview only, don\'t apply changes (default: true)',
+        },
+      },
+      required: ['site', 'devices', 'updates'],
+    },
+    handler: (client, args) => compositeTools.bulkUpdateSiteDevices(client, args as any),
+  },
+  {
+    name: 'get-account-analytics',
+    description: '🌟 [Tier 1] Account-wide usage metrics and trends. Shows device growth, site statistics, alert patterns, and capacity planning insights.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        time_range: {
+          type: 'string',
+          enum: ['week', 'month', 'quarter'],
+          description: 'Time range for trending analysis (default: month)',
+        },
+        metrics: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['devices', 'alerts', 'sites'],
+          },
+          description: 'Metrics to include (default: all)',
+        },
+      },
+    },
+    handler: (client, args) => compositeTools.getAccountAnalytics(client, args as any),
+  },
 
   // ==================== 🔧 TIER 2: API-LEVEL TOOLS (ADVANCED) ====================
   
