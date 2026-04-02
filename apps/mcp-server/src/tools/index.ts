@@ -1,6 +1,9 @@
 import type { DattoClient } from 'datto-rmm-api';
 
-// Tool implementations
+// Tier 1: Task-Oriented Composite Tools
+import * as compositeTools from './composite/index.js';
+
+// Tier 2: API-Level Tools
 import * as accountTools from './account.js';
 import * as siteTools from './sites.js';
 import * as deviceTools from './devices.js';
@@ -31,12 +34,111 @@ export interface ToolDefinition {
 
 /**
  * All available tools.
+ * 
+ * Tools are organized in two tiers:
+ * - Tier 1 (🌟 Task-Oriented): High-level composite tools for common workflows (recommended)
+ * - Tier 2 (🔧 Advanced): Low-level API mappings for granular control
  */
 export const tools: ToolDefinition[] = [
-  // ==================== Account Tools ====================
+  // ==================== 🌟 TIER 1: TASK-ORIENTED TOOLS ====================
+  
+  // Account Overview (Triage & Prioritization)
+  {
+    name: 'get-account-dashboard',
+    description: '🌟 [Tier 1] Get high-level account overview for start-of-day triage. Shows critical sites, alert summary, and recommended actions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        time_range: {
+          type: 'string',
+          enum: ['today', 'week', 'month'],
+          description: 'Time range for activity metrics (default: today)',
+        },
+      },
+    },
+    handler: (client, args) => compositeTools.getAccountDashboard(client, args as Parameters<typeof compositeTools.getAccountDashboard>[1]),
+  },
+  {
+    name: 'find-sites-with-issues',
+    description: '🌟 [Tier 1] Find which sites need attention right now. Returns ranked list of sites with alerts and offline devices.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        severity: {
+          type: 'string',
+          enum: ['critical', 'warning', 'all'],
+          description: 'Minimum severity level (default: critical)',
+        },
+        min_offline_devices: {
+          type: 'number',
+          description: 'Minimum offline device count to include site (default: 1)',
+        },
+        sort_by: {
+          type: 'string',
+          enum: ['alerts', 'offline_devices', 'combined'],
+          description: 'Sort order (default: combined)',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum sites to return (default: 10)',
+        },
+      },
+    },
+    handler: (client, args) => compositeTools.findSitesWithIssues(client, args as Parameters<typeof compositeTools.findSitesWithIssues>[1]),
+  },
+  {
+    name: 'search-devices',
+    description: '🌟 [Tier 1] Search for devices across all sites using natural language. Matches hostname, IP, site name, or OS. Use when you don\'t know which site contains a device.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search term (matches hostname, IP, site, OS)',
+        },
+        status: {
+          type: 'string',
+          enum: ['online', 'offline', 'all'],
+          description: 'Filter by device status (default: all)',
+        },
+        has_alerts: {
+          type: 'boolean',
+          description: 'Only devices with open alerts (default: false)',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum results to return (default: 20)',
+        },
+      },
+    },
+    handler: (client, args) => compositeTools.searchDevices(client, args as Parameters<typeof compositeTools.searchDevices>[1]),
+  },
+  {
+    name: 'get-site-health',
+    description: '🌟 [Tier 1] Get comprehensive site health dashboard. Shows devices, alerts, top problem devices, and recommended actions. Primary entry point for site-focused work.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        site: {
+          type: 'string',
+          description: 'Site name or UID',
+        },
+        include_device_details: {
+          type: 'boolean',
+          description: 'Include full device list vs summary (default: false)',
+        },
+      },
+      required: ['site'],
+    },
+    handler: (client, args) => compositeTools.getSiteHealth(client, args as any),
+  },
+
+  // ==================== 🔧 TIER 2: API-LEVEL TOOLS (ADVANCED) ====================
+  
+  // Account Tools
   {
     name: 'get-account',
-    description: 'Get information about the authenticated Datto RMM account, including device status summary',
+    description: '🔧 [Advanced] Get raw account information including device status summary',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -45,7 +147,7 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: 'list-sites',
-    description: 'List all sites in the Datto RMM account. Supports pagination and filtering by site name.',
+    description: '🔧 [Advanced] List all sites (raw API). Use get-site-health for richer site information.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -58,7 +160,7 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: 'list-devices',
-    description: 'List all devices in the account. Supports filtering by hostname, site, device type, and OS.',
+    description: '🔧 [Advanced] List all devices (raw API). Use search-devices for natural language search.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -111,7 +213,7 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: 'list-open-alerts',
-    description: 'List all open (unresolved) alerts across the entire account',
+    description: '🔧 [Advanced] List all open alerts (raw API). Use get-alert-summary for analytics.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -136,10 +238,10 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listResolvedAlerts(client, args as Parameters<typeof accountTools.listResolvedAlerts>[1]),
   },
 
-  // ==================== Site Tools ====================
+  // Site Tools
   {
     name: 'get-site',
-    description: 'Get detailed information about a specific site',
+    description: '🔧 [Advanced] Get raw site information. Use get-site-health for comprehensive site overview.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -151,7 +253,7 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: 'list-site-devices',
-    description: 'List all devices in a specific site',
+    description: '🔧 [Advanced] List site devices (raw API). Included in get-site-health.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -166,7 +268,7 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: 'list-site-open-alerts',
-    description: 'List open alerts for a specific site',
+    description: '🔧 [Advanced] List site alerts (raw API). Included in get-site-health.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -268,10 +370,10 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.updateSite(client, args as Parameters<typeof siteTools.updateSite>[1]),
   },
 
-  // ==================== Device Tools ====================
+  // Device Tools
   {
     name: 'get-device',
-    description: 'Get detailed information about a specific device by its UID',
+    description: '🔧 [Advanced] Get raw device information by UID. Use get-device-health for comprehensive health snapshot.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -307,7 +409,7 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: 'list-device-open-alerts',
-    description: 'List open alerts for a specific device',
+    description: '🔧 [Advanced] List device alerts (raw API). Included in get-device-health.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -405,10 +507,10 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.setDeviceWarranty(client, args as Parameters<typeof deviceTools.setDeviceWarranty>[1]),
   },
 
-  // ==================== Alert Tools ====================
+  // Alert Tools
   {
     name: 'get-alert',
-    description: 'Get detailed information about a specific alert',
+    description: '🔧 [Advanced] Get raw alert information by UID. Use investigate-alert for deep analysis.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -431,10 +533,10 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => alertTools.resolveAlert(client, args as Parameters<typeof alertTools.resolveAlert>[1]),
   },
 
-  // ==================== Job Tools ====================
+  // Job Tools
   {
     name: 'get-job',
-    description: 'Get information about a specific job',
+    description: '🔧 [Advanced] Get raw job information by UID',
     inputSchema: {
       type: 'object',
       properties: {

@@ -4,11 +4,45 @@ MCP (Model Context Protocol) server for Datto RMM. Enables AI assistants like Cl
 
 ## Features
 
-- **39 MCP Tools** covering the complete Datto RMM API
+- **56 MCP Tools** organized in two tiers:
+  - **🌟 Tier 1 (4 tools)**: Task-oriented composite tools for common workflows (recommended)
+  - **🔧 Tier 2 (52 tools)**: API-level tools for granular control (advanced)
 - **6 MCP Resources** for browsable data hierarchies
 - **Full OAuth 2.0 support** with automatic token management
 - **All 6 Datto platforms** supported (Pinotage, Merlot, Concord, Vidal, Zinfandel, Syrah)
 - **Type-safe** - Built on the `datto-rmm-api` package
+
+## Two-Tier Tool Architecture
+
+### 🌟 Tier 1: Task-Oriented Tools (Recommended)
+
+High-level composite tools that aggregate multiple API calls into single operations. Accept natural language inputs and return rich, formatted responses with recommendations.
+
+**Phase 1 Tools (Available Now):**
+
+| Tool | Purpose | Use When |
+|------|---------|----------|
+| `get-account-dashboard` | Start-of-day triage overview | "What needs attention today?" |
+| `find-sites-with-issues` | Identify problem sites | "Which sites have issues?" |
+| `get-site-health` | Complete site health dashboard | "Check Acme Corp site" |
+| `search-devices` | Find devices across all sites | "Find web-server-01" (don't know which site) |
+
+**Example Workflow:**
+```
+1. Start: get-account-dashboard → Shows 3 sites with critical alerts
+2. Prioritize: find-sites-with-issues → Acme Corp has most problems
+3. Investigate: get-site-health({ site: "Acme Corp" }) → 2 servers offline
+4. Act: Use device/alert tools to remediate
+```
+
+### 🔧 Tier 2: API-Level Tools (Advanced)
+
+Direct 1:1 mappings to Datto RMM API endpoints. Auto-generated from OpenAPI spec. Use for:
+- Edge cases Tier 1 doesn't cover
+- Granular control over specific operations
+- Direct API access when needed
+
+All 55 active API operations available. See [API Tools](#tier-2-api-level-tools-advanced) section below.
 
 ## Installation
 
@@ -75,7 +109,37 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 
 ## Available Tools
 
-### Account Operations
+### 🌟 Tier 1: Task-Oriented Tools (Recommended)
+
+Start with these tools for common workflows. They aggregate multiple API calls and provide rich, actionable responses.
+
+#### Account Overview (Triage)
+
+| Tool | Purpose | Returns |
+|------|---------|---------|
+| `get-account-dashboard` | Start-of-day overview | Critical sites, alert summary, device counts, recommended actions |
+| `find-sites-with-issues` | Identify problem sites | Ranked sites with alerts/offline devices, common issue types |
+| `search-devices` | Find device across all sites | Devices matching query with site context, alert counts, UIDs |
+
+#### Site Operations
+
+| Tool | Purpose | Returns |
+|------|---------|---------|
+| `get-site-health` | Complete site dashboard | Device stats, alerts by type, top problem devices, recommended actions |
+
+**Typical workflow:**
+1. `get-account-dashboard` → See what needs attention
+2. `find-sites-with-issues` → Identify problem sites
+3. `get-site-health` → Drill into specific site
+4. Use device/alert tools to remediate
+
+---
+
+### 🔧 Tier 2: API-Level Tools (Advanced)
+
+Direct API endpoint mappings for granular control. Use when Tier 1 tools don't cover your specific need.
+
+#### Account Operations
 | Tool | Description |
 |------|-------------|
 | `get-account` | Get account information and device status summary |
@@ -87,7 +151,7 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 | `list-open-alerts` | List all open alerts |
 | `list-resolved-alerts` | List resolved alerts |
 
-### Site Operations
+#### Site Operations
 | Tool | Description |
 |------|-------------|
 | `get-site` | Get detailed site information |
@@ -100,7 +164,7 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 | `create-site` | Create a new site |
 | `update-site` | Update site details |
 
-### Device Operations
+#### Device Operations
 | Tool | Description |
 |------|-------------|
 | `get-device` | Get device details by UID |
@@ -113,7 +177,7 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 | `set-device-udf` | Set user-defined fields |
 | `set-device-warranty` | Set warranty date |
 
-### Alert Operations
+#### Alert Operations
 | Tool | Description |
 |------|-------------|
 | `get-alert` | Get alert details |
