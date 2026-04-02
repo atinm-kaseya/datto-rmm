@@ -14,7 +14,7 @@ describe('get-account-dashboard', () => {
     expect(result.isError).toBeUndefined();
     expect(result.content).toHaveLength(1);
 
-    const text = result.content[0].text;
+    const text = result.content[0]!.text;
     
     // Check main sections exist
     expect(text).toContain('# Account Dashboard');
@@ -26,7 +26,7 @@ describe('get-account-dashboard', () => {
   it('should show all clear when no issues', async () => {
     const client = createMockClient({
       sites: {
-        pageDetails: { count: 1, prevPageUrl: null, nextPageUrl: null },
+        pageDetails: { count: 1, prevPageUrl: undefined, nextPageUrl: undefined },
         sites: [
           {
             uid: 'site-1',
@@ -37,7 +37,7 @@ describe('get-account-dashboard', () => {
         ],
       },
       devices: {
-        pageDetails: { count: 10, prevPageUrl: null, nextPageUrl: null },
+        pageDetails: { count: 10, prevPageUrl: undefined, nextPageUrl: undefined },
         devices: Array(10).fill(null).map((_, i) => ({
           uid: `device-${i}`,
           hostname: `device-${i}`,
@@ -48,13 +48,13 @@ describe('get-account-dashboard', () => {
         })),
       },
       alerts: {
-        pageDetails: { count: 0, prevPageUrl: null, nextPageUrl: null },
+        pageDetails: { count: 0, prevPageUrl: undefined, nextPageUrl: undefined },
         alerts: [],
       },
     });
 
     const result = await getAccountDashboard(client, {});
-    const text = result.content[0].text;
+    const text = result.content[0]!.text;
     
     expect(text).toContain('## ✅ All Clear');
     expect(text).toContain('No critical issues detected');
@@ -63,7 +63,7 @@ describe('get-account-dashboard', () => {
   it('should rank sites by score', async () => {
     const client = createMockClient({
       sites: {
-        pageDetails: { count: 2, prevPageUrl: null, nextPageUrl: null },
+        pageDetails: { count: 2, prevPageUrl: undefined, nextPageUrl: undefined },
         sites: [
           {
             uid: 'site-1',

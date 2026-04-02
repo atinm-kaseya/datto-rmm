@@ -12,7 +12,7 @@ describe('find-sites-with-issues', () => {
     const result = await findSitesWithIssues(client, {});
 
     expect(result.isError).toBeUndefined();
-    const text = result.content[0].text;
+    const text = result.content[0]!.text;
     
     expect(text).toContain('# Sites With Issues');
     expect(text).toContain('Acme Corp');
@@ -23,7 +23,7 @@ describe('find-sites-with-issues', () => {
   it('should filter by min_offline_devices', async () => {
     const client = createMockClient({
       sites: {
-        pageDetails: { count: 2, prevPageUrl: null, nextPageUrl: null },
+        pageDetails: { count: 2, prevPageUrl: undefined, nextPageUrl: undefined },
         sites: [
           {
             uid: 'site-1',
@@ -40,13 +40,13 @@ describe('find-sites-with-issues', () => {
         ],
       },
       alerts: {
-        pageDetails: { count: 0, prevPageUrl: null, nextPageUrl: null },
+        pageDetails: { count: 0, prevPageUrl: undefined, nextPageUrl: undefined },
         alerts: [],
       },
     });
 
     const result = await findSitesWithIssues(client, { min_offline_devices: 5 });
-    const text = result.content[0].text;
+    const text = result.content[0]!.text;
     
     expect(text).toContain('Many Offline');
     expect(text).not.toContain('One Offline');
@@ -55,7 +55,7 @@ describe('find-sites-with-issues', () => {
   it('should include recommended next steps', async () => {
     const client = createMockClient();
     const result = await findSitesWithIssues(client, {});
-    const text = result.content[0].text;
+    const text = result.content[0]!.text;
     
     expect(text).toContain('## 💡 Recommended Next Steps');
     expect(text).toContain('get-site-health');

@@ -205,14 +205,14 @@ function buildHealthReport(data: {
     if (critical.length > 0) {
       sections.push(`\n**Critical (${critical.length}):**`);
       critical.slice(0, 5).forEach((alert: any) => {
-        sections.push(`- ⚠️  ${alert.alertMessage} (${formatTimestamp(alert.alertSourceTime)})`);
+        sections.push(`- ⚠️  ${alert.alertMessage} (${formatTimestamp(alert.timestamp)})`);
       });
     }
 
     if (warnings.length > 0) {
       sections.push(`\n**Warnings (${warnings.length}):**`);
       warnings.slice(0, 5).forEach((alert: any) => {
-        sections.push(`- ⚡ ${alert.alertMessage} (${formatTimestamp(alert.alertSourceTime)})`);
+        sections.push(`- ⚡ ${alert.alertMessage} (${formatTimestamp(alert.timestamp)})`);
       });
     }
 

@@ -132,6 +132,100 @@ export const tools: ToolDefinition[] = [
     },
     handler: (client, args) => compositeTools.getSiteHealth(client, args as any),
   },
+  {
+    name: 'get-device-health',
+    description: '🌟 [Tier 1] Get complete device health snapshot. Shows status, alerts, hardware, recent jobs, and recommendations. Use for device troubleshooting.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        device: {
+          type: 'string',
+          description: 'Device identifier: hostname, UID, or MAC address',
+        },
+        site: {
+          type: 'string',
+          description: 'Site name or UID (optional, helps resolve hostname)',
+        },
+        include_history: {
+          type: 'boolean',
+          description: 'Include recent jobs and activity (default: true)',
+        },
+      },
+      required: ['device'],
+    },
+    handler: (client, args) => compositeTools.getDeviceHealth(client, args as any),
+  },
+  {
+    name: 'diagnose-device-issue',
+    description: '🌟 [Tier 1] AI-assisted device troubleshooting. Analyzes device state, recent changes, and provides actionable diagnosis with prioritized remediation steps.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        device: {
+          type: 'string',
+          description: 'Device identifier: hostname, UID, or MAC address',
+        },
+        site: {
+          type: 'string',
+          description: 'Site name or UID (optional, helps resolve device)',
+        },
+        issue: {
+          type: 'string',
+          description: 'Brief description of problem (e.g., "slow performance", "backup failing")',
+        },
+      },
+      required: ['device', 'issue'],
+    },
+    handler: (client, args) => compositeTools.diagnoseDeviceIssue(client, args as any),
+  },
+  {
+    name: 'investigate-alert',
+    description: '🌟 [Tier 1] Deep alert analysis with pattern detection. Finds similar alerts across devices, assesses impact, and provides resolution suggestions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        alert_uid: {
+          type: 'string',
+          description: 'Alert UID to investigate',
+        },
+        include_similar: {
+          type: 'boolean',
+          description: 'Find similar alerts on other devices (default: true)',
+        },
+      },
+      required: ['alert_uid'],
+    },
+    handler: (client, args) => compositeTools.investigateAlert(client, args as any),
+  },
+  {
+    name: 'get-alert-summary',
+    description: '🌟 [Tier 1] Alert trending and analytics. Groups alerts by type/device/site, shows patterns, and identifies most affected areas.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        site: {
+          type: 'string',
+          description: 'Filter to specific site (optional, account-wide if omitted)',
+        },
+        severity: {
+          type: 'string',
+          enum: ['critical', 'warning', 'all'],
+          description: 'Filter by severity (default: all)',
+        },
+        group_by: {
+          type: 'string',
+          enum: ['device', 'type', 'site'],
+          description: 'Group alerts by dimension (default: type)',
+        },
+        time_range: {
+          type: 'string',
+          enum: ['today', 'week', 'month'],
+          description: 'Time range for analysis (default: today)',
+        },
+      },
+    },
+    handler: (client, args) => compositeTools.getAlertSummary(client, args as any),
+  },
 
   // ==================== 🔧 TIER 2: API-LEVEL TOOLS (ADVANCED) ====================
   

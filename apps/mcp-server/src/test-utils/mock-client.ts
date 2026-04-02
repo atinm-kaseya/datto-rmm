@@ -32,6 +32,22 @@ export function createMockClient(mockResponses: Partial<MockResponses> = {}): Da
         return { data: responses.alerts, error: undefined, response: mockResponse() };
       }
       
+      if (path === '/v2/alert/{alertUid}') {
+        return { data: responses.alert, error: responses.alert ? undefined : { code: 404, message: 'Not found' }, response: mockResponse() };
+      }
+      
+      if (path === '/v2/device/{deviceUid}') {
+        return { data: responses.device, error: undefined, response: mockResponse() };
+      }
+      
+      if (path === '/v2/audit/device/{deviceUid}') {
+        return { data: responses.deviceAudit, error: undefined, response: mockResponse() };
+      }
+      
+      if (path === '/v2/device/{deviceUid}/jobs') {
+        return { data: responses.deviceJobs, error: undefined, response: mockResponse() };
+      }
+      
       if (path.startsWith('/v2/site/')) {
         if (path.includes('/devices')) {
           return { data: responses.siteDevices, error: undefined, response: mockResponse() };
@@ -71,12 +87,16 @@ export interface MockResponses {
   sites: T.SitesPage;
   devices: T.DevicesPage;
   alerts: T.AlertsPage;
+  alert: T.Alert | null;
+  device: T.Device;
   site: T.Site;
   siteDevices: T.DevicesPage;
   siteAlerts: T.AlertsPage;
   siteVariables: T.VariablesPage;
   siteSettings: T.SiteSettings;
   deviceAlerts: T.AlertsPage;
+  deviceAudit: any;
+  deviceJobs: any;
 }
 
 /**
@@ -94,7 +114,7 @@ const defaultMockResponses: MockResponses = {
     },
   },
   sites: {
-    pageDetails: { count: 3, prevPageUrl: null, nextPageUrl: null },
+    pageDetails: { count: 3, prevPageUrl: undefined, nextPageUrl: undefined },
     sites: [
       {
         uid: 'site-1',
@@ -129,7 +149,7 @@ const defaultMockResponses: MockResponses = {
     ],
   },
   devices: {
-    pageDetails: { count: 10, prevPageUrl: null, nextPageUrl: null },
+    pageDetails: { count: 10, prevPageUrl: undefined, nextPageUrl: undefined },
     devices: [
       {
         uid: 'device-1',
@@ -154,7 +174,7 @@ const defaultMockResponses: MockResponses = {
     ],
   },
   alerts: {
-    pageDetails: { count: 15, prevPageUrl: null, nextPageUrl: null },
+    pageDetails: { count: 15, prevPageUrl: undefined, nextPageUrl: undefined },
     alerts: [
       {
         alertUid: 'alert-1',
@@ -202,7 +222,7 @@ const defaultMockResponses: MockResponses = {
     },
   },
   siteDevices: {
-    pageDetails: { count: 5, prevPageUrl: null, nextPageUrl: null },
+    pageDetails: { count: 5, prevPageUrl: undefined, nextPageUrl: undefined },
     devices: [
       {
         uid: 'device-1',
@@ -226,7 +246,7 @@ const defaultMockResponses: MockResponses = {
     ],
   },
   siteAlerts: {
-    pageDetails: { count: 3, prevPageUrl: null, nextPageUrl: null },
+    pageDetails: { count: 3, prevPageUrl: undefined, nextPageUrl: undefined },
     alerts: [
       {
         alertUid: 'alert-1',
@@ -240,7 +260,7 @@ const defaultMockResponses: MockResponses = {
     ],
   },
   siteVariables: {
-    pageDetails: { count: 2, prevPageUrl: null, nextPageUrl: null },
+    pageDetails: { count: 2, prevPageUrl: undefined, nextPageUrl: undefined },
     variables: [
       { id: 1, name: 'backupServer', value: 'backup01.local' },
     ],
@@ -253,7 +273,7 @@ const defaultMockResponses: MockResponses = {
     },
   },
   deviceAlerts: {
-    pageDetails: { count: 2, prevPageUrl: null, nextPageUrl: null, totalCount: 2 },
+    pageDetails: { count: 2, prevPageUrl: undefined, nextPageUrl: undefined, totalCount: 2 },
     alerts: [
       {
         alertUid: 'alert-1',
@@ -262,6 +282,75 @@ const defaultMockResponses: MockResponses = {
       {
         alertUid: 'alert-2',
         priority: 'High',
+      },
+    ],
+  },
+  alert: {
+    alertUid: 'alert-1',
+    priority: 'Critical',
+    diagnostics: 'Disk Space: C drive at 95%',
+    alertSourceInfo: {
+      deviceUid: 'device-1',
+      deviceName: 'web-server-01',
+      siteUid: 'site-1',
+      siteName: 'Acme Corp',
+    },
+  },
+  device: {
+    uid: 'device-1',
+    hostname: 'web-server-01',
+    siteName: 'Acme Corp',
+    siteUid: 'site-1',
+    online: true,
+    deviceType: { type: 'Server' },
+    operatingSystem: 'Windows Server 2022',
+    intIpAddress: '192.168.1.10',
+    extIpAddress: '203.0.113.10',
+    domain: 'acme.local',
+    lastLoggedInUser: 'admin@acme.local',
+    lastSeen: new Date(Date.now() - 120000).toISOString(), // 2 min ago
+  },
+  deviceAudit: {
+    cpu: {
+      name: 'Intel Xeon E5-2680 v4',
+      cores: 8,
+    },
+    memory: {
+      totalMemory: 34359738368, // 32 GB in bytes
+    },
+    disks: [
+      {
+        volume: 'C:',
+        capacity: 536870912000, // 500 GB in bytes
+        freeSpace: 26843545600, // 25 GB free (5% remaining)
+      },
+      {
+        volume: 'D:',
+        capacity: 1073741824000, // 1 TB
+        freeSpace: 644245094400, // 600 GB free (60% remaining)
+      },
+    ],
+  },
+  deviceJobs: {
+    pageDetails: { count: 5, prevPageUrl: undefined, nextPageUrl: undefined },
+    jobs: [
+      {
+        jobUid: 'job-1',
+        jobType: 'Windows Updates',
+        status: 'completed',
+        startTime: Date.now() - 21600000, // 6h ago
+      },
+      {
+        jobUid: 'job-2',
+        jobType: 'Backup',
+        status: 'completed',
+        startTime: Date.now() - 43200000, // 12h ago
+      },
+      {
+        jobUid: 'job-3',
+        jobType: 'Disk Cleanup',
+        status: 'failed',
+        startTime: Date.now() - 86400000, // 24h ago
       },
     ],
   },
