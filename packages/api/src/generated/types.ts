@@ -200,26 +200,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/alert/{alertUid}/unmute": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Alerts can no longer be un-muted, as of the 8.9.0 release.
-         * @deprecated
-         */
-        post: operations["unmuteAlert"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v2/alert/{alertUid}/resolve": {
         parameters: {
             query?: never;
@@ -231,26 +211,6 @@ export interface paths {
         put?: never;
         /** Resolves the alert identified by the given alert Uid. */
         post: operations["resolveAlert"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v2/alert/{alertUid}/mute": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Alerts can no longer be muted, as of the 8.9.0 release.
-         * @deprecated
-         */
-        post: operations["muteAlert"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2769,40 +2729,6 @@ export interface operations {
             };
         };
     };
-    unmuteAlert: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                alertUid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     resolveAlert: {
         parameters: {
             query?: never;
@@ -2823,40 +2749,6 @@ export interface operations {
             };
             /** @description Authenticated user doesn't have access to this resource. */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    muteAlert: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                alertUid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
                 headers: {
                     [name: string]: unknown;
                 };
