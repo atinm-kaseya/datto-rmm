@@ -4,10 +4,10 @@ MCP (Model Context Protocol) server for Datto RMM. Enables AI assistants like Cl
 
 ## Features
 
-- **56 MCP Tools** organized in two tiers:
-  - **🌟 Tier 1 (4 tools)**: Task-oriented composite tools for common workflows (recommended)
+- **65 MCP Tools** organized in two tiers:
+  - **🌟 Tier 1 (13 tools)**: Task-oriented composite tools for common workflows (recommended)
   - **🔧 Tier 2 (52 tools)**: API-level tools for granular control (advanced)
-- **6 MCP Resources** for browsable data hierarchies
+- **10 MCP Resources** for browsable data hierarchies and documentation
 - **Full OAuth 2.0 support** with automatic token management
 - **All 6 Datto platforms** supported (Pinotage, Merlot, Concord, Vidal, Zinfandel, Syrah)
 - **Type-safe** - Built on the `datto-rmm-api` package
@@ -18,7 +18,9 @@ MCP (Model Context Protocol) server for Datto RMM. Enables AI assistants like Cl
 
 High-level composite tools that aggregate multiple API calls into single operations. Accept natural language inputs and return rich, formatted responses with recommendations.
 
-**Phase 1 Tools (Available Now):**
+**MSP Workflow:** Start of day triage (account-wide) → identify problem sites → drill into site → work within site context
+
+#### Phase 1: Account Overview & Triage (✅ Complete)
 
 | Tool | Purpose | Use When |
 |------|---------|----------|
@@ -27,13 +29,98 @@ High-level composite tools that aggregate multiple API calls into single operati
 | `get-site-health` | Complete site health dashboard | "Check Acme Corp site" |
 | `search-devices` | Find devices across all sites | "Find web-server-01" (don't know which site) |
 
+#### Phase 2: Device Health & Alert Analysis (✅ Complete)
+
+| Tool | Purpose | Use When |
+|------|---------|----------|
+| `get-device-health` | Complete device health snapshot | "Check web-server-01 at Acme Corp" |
+| `diagnose-device-issue` | AI-assisted troubleshooting | "Why is this device slow?" |
+| `investigate-alert` | Deep alert analysis with patterns | "Why did this alert fire?" |
+| `get-alert-summary` | Alert trending and analytics | "Show me alert trends this week" |
+
+#### Phase 3: Operations & Bulk Actions (✅ Complete)
+
+| Tool | Purpose | Use When |
+|------|---------|----------|
+| `list-site-devices` | Browse/filter devices in site | "Show me all servers at Acme Corp" |
+| `get-site-alerts` | Site alert overview with grouping | "What alerts does this site have?" |
+| `run-site-component` | Execute jobs on site devices | "Run disk cleanup on all servers" |
+| `bulk-update-site-devices` | Mass device updates (site-scoped) | "Set warranty dates for all devices" |
+| `get-account-analytics` | Usage metrics and trending | "Show device growth this quarter" |
+
 **Example Workflow:**
 ```
-1. Start: get-account-dashboard → Shows 3 sites with critical alerts
+1. Triage: get-account-dashboard → Shows 3 sites with critical alerts
 2. Prioritize: find-sites-with-issues → Acme Corp has most problems
-3. Investigate: get-site-health({ site: "Acme Corp" }) → 2 servers offline
-4. Act: Use device/alert tools to remediate
+3. Site Health: get-site-health({ site: "Acme Corp" }) → 2 servers offline, 12 critical alerts
+4. Investigate: get-device-health({ device: "web-server-01", site: "Acme Corp" }) → Disk 95% full
+5. Remediate: run-site-component({ site: "Acme Corp", devices: ["web-server-01"], component: "Disk Cleanup" })
 ```
+
+---
+
+#### When to Use Which Tier
+
+**🌟 Use Tier 1 (Task-Oriented) When:**
+- Starting a new investigation ("What needs attention?")
+- Working with natural inputs (site names, hostnames, not UIDs)
+- Need recommendations for next steps
+- Want aggregated data (multiple API calls in one)
+- Performing common MSP workflows (triage, site health, diagnostics)
+- Need formatted, readable output with context
+
+**Examples:**
+- "Show me sites with issues" → `find-sites-with-issues`
+- "Check health of Acme Corp" → `get-site-health`
+- "Why is web-server-01 slow?" → `diagnose-device-issue`
+
+**🔧 Use Tier 2 (API-Level) When:**
+- Need granular control over specific API operations
+- Working with exact UIDs and parameters
+- Tier 1 doesn't cover your specific edge case
+- Building custom workflows or automation
+- Need raw API responses for processing
+
+**Examples:**
+- "Update device UID abc123 with warranty '2027-12-31'" → `update-device` (Tier 2)
+- "Get audit data for device xyz789" → `get-device-audit` (Tier 2)
+- "List all components with category 'Backup'" → `list-components` (Tier 2)
+
+**💡 Progressive Approach:**
+1. Start with Tier 1 tools (simple, natural language)
+2. Follow recommendations in tool outputs (they suggest next tools)
+3. Drop to Tier 2 only when needed (specific API operations)
+4. Mix both tiers in same workflow as needed
+
+---
+
+#### Recommended Tools Quick Reference
+
+**Daily Triage:**
+1. `get-account-dashboard` - See what needs attention
+2. `find-sites-with-issues` - Prioritize sites
+3. `get-site-health` - Investigate priority sites
+
+**Device Troubleshooting:**
+1. `get-device-health` - Complete device snapshot
+2. `diagnose-device-issue` - AI-assisted diagnosis
+3. `run-site-component` - Execute remediation
+
+**Alert Management:**
+1. `get-alert-summary` - See patterns and trends
+2. `investigate-alert` - Deep dive into specific alert
+3. `get-site-alerts` - Site-focused alert view
+
+**Bulk Operations:**
+1. `list-site-devices` - Identify target devices
+2. `bulk-update-site-devices` - Preview changes (dry-run)
+3. `bulk-update-site-devices` - Apply changes (dry_run: false)
+4. `run-site-component` - Execute on multiple devices
+
+**Reporting:**
+1. `get-account-analytics` - Usage metrics and trends
+
+
 
 ### 🔧 Tier 2: API-Level Tools (Advanced)
 
@@ -229,28 +316,67 @@ Direct API endpoint mappings for granular control. Use when Tier 1 tools don't c
 
 ## Available Resources
 
-Browse data hierarchies via MCP resources:
+Browse data hierarchies and documentation via MCP resources:
+
+### Data Resources
 
 | URI | Description |
 |-----|-------------|
-| `datto://account` | Account overview |
+| `datto://account` | Account overview and device summary |
 | `datto://sites` | List of all sites |
-| `datto://sites/{siteUid}` | Site details |
-| `datto://sites/{siteUid}/devices` | Devices in a site |
-| `datto://devices/{deviceUid}` | Device details |
+| `datto://sites/{siteUid}` | Site details and statistics |
+| `datto://sites/{siteUid}/devices` | Devices in a specific site |
+| `datto://devices/{deviceUid}` | Device details and status |
 | `datto://alerts/open` | Open alerts summary |
+
+### Documentation Resources
+
+| URI | Description |
+|-----|-------------|
+| `datto://docs/workflows` | Common MSP workflows with recommended tool usage |
+| `datto://docs/troubleshooting` | Issue-specific troubleshooting guides and resolution steps |
+| `datto://docs/components` | Available component catalog with use cases |
+| `datto://docs/alerts` | Alert type reference with typical causes |
+
+**Using Documentation:**
+AI assistants can browse these resources to understand best practices and recommended tool chains for common scenarios. For example, the workflows resource provides step-by-step guides for daily triage, device diagnostics, and bulk operations.
 
 ## Example Queries
 
 Once connected, you can ask Claude things like:
 
-- "List all my Datto RMM sites"
-- "Show me all offline devices"
-- "What are the open alerts for the Main Office site?"
-- "Get the hardware specs for device xyz123"
-- "What software is installed on the server?"
-- "Run the Windows Update component on device abc456"
-- "Show me the activity logs from the last hour"
+**Daily Triage:**
+- "What needs attention today?"
+- "Show me sites with critical alerts"
+- "Which sites should I focus on?"
+
+**Site Investigation:**
+- "Check the health of Acme Corp site"
+- "What alerts does TechStart Inc have?"
+- "Show me all servers at Legal Partners"
+- "List offline devices at Acme Corp"
+
+**Device Diagnostics:**
+- "Check health of web-server-01"
+- "Why is db-server-01 running slow?"
+- "Find the device with hostname 'mail-server'"
+- "What's wrong with device xyz123?"
+
+**Alert Management:**
+- "Show me alert trends this week"
+- "Investigate alert abc456"
+- "What are the most common alerts?"
+- "Group alerts by device for Acme Corp"
+
+**Bulk Operations:**
+- "Run disk cleanup on all Acme Corp servers"
+- "Update warranty dates for these devices"
+- "Set patch group to 'Weekend' for all workstations"
+
+**Reporting:**
+- "Show device growth over the past month"
+- "What's our alert resolution rate?"
+- "How many jobs ran successfully this week?"
 
 ## Development
 

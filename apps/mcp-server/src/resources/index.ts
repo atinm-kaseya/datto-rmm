@@ -2,6 +2,10 @@ import type { DattoClient } from 'datto-rmm-api';
 import { formatError } from '../utils/formatting.js';
 import { handleResponse } from '../utils/response.js';
 import type * as T from '../types.js';
+import { getWorkflowsDoc } from './docs/workflows.js';
+import { getTroubleshootingDoc } from './docs/troubleshooting.js';
+import { getComponentsDoc } from './docs/components.js';
+import { getAlertsDoc } from './docs/alerts.js';
 
 /**
  * Resource definition for MCP.
@@ -43,6 +47,31 @@ export const resources: ResourceDefinition[] = [
     uri: 'datto://alerts/open',
     name: 'Open Alerts',
     description: 'All currently open alerts across the account',
+    mimeType: 'text/plain',
+  },
+  // Documentation Resources
+  {
+    uri: 'datto://docs/workflows',
+    name: 'MSP Workflows',
+    description: 'Common MSP workflows with recommended tool usage',
+    mimeType: 'text/plain',
+  },
+  {
+    uri: 'datto://docs/troubleshooting',
+    name: 'Troubleshooting Guide',
+    description: 'Issue-specific troubleshooting workflows and resolution steps',
+    mimeType: 'text/plain',
+  },
+  {
+    uri: 'datto://docs/components',
+    name: 'Component Catalog',
+    description: 'Available components with use cases and best practices',
+    mimeType: 'text/plain',
+  },
+  {
+    uri: 'datto://docs/alerts',
+    name: 'Alert Type Reference',
+    description: 'Alert types, causes, and resolution strategies',
     mimeType: 'text/plain',
   },
 ];
@@ -137,6 +166,23 @@ export async function readResource(
       }
 
       return { contents: [{ uri, mimeType: 'text/plain', text: lines.join('\n') }] };
+    }
+
+    // Documentation Resources
+    if (uri === 'datto://docs/workflows') {
+      return { contents: [{ uri, mimeType: 'text/plain', text: getWorkflowsDoc() }] };
+    }
+
+    if (uri === 'datto://docs/troubleshooting') {
+      return { contents: [{ uri, mimeType: 'text/plain', text: getTroubleshootingDoc() }] };
+    }
+
+    if (uri === 'datto://docs/components') {
+      return { contents: [{ uri, mimeType: 'text/plain', text: getComponentsDoc() }] };
+    }
+
+    if (uri === 'datto://docs/alerts') {
+      return { contents: [{ uri, mimeType: 'text/plain', text: getAlertsDoc() }] };
     }
 
     // datto://sites/{siteUid}
