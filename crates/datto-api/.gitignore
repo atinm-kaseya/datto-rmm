@@ -7,6 +7,9 @@ target/
 # OpenAPI spec copied from monorepo during build (for crates.io publish)
 openapi.json
 
+# Auto-generated API code (generated during build by openapi-generator)
+/src/generated/
+
 # Environment variables
 .env
 .env.local

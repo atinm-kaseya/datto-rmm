@@ -30,10 +30,19 @@ pnpm --filter datto-rmm-api generate
 # Generate Rust client (if cargo is available)
 if command -v cargo &> /dev/null; then
     echo ""
-    echo "Generating Rust client..."
-    cd "$WORKSPACE_ROOT"
-    cargo build -p datto-api 2>&1 | grep -v "^   Compiling" | grep -v "^    Finished" || true
-    echo "Rust client generated successfully!"
+    echo "Generating Rust client (via openapi-generator in build.rs)..."
+    
+    # Check if openapi-generator is installed
+    if ! command -v openapi-generator &> /dev/null; then
+        echo "Warning: openapi-generator not found"
+        echo "Install with: brew install openapi-generator"
+        echo "Skipping Rust client generation"
+    else
+        cd "$WORKSPACE_ROOT"
+        # Building will trigger the build.rs script which runs openapi-generator
+        cargo build -p datto-api 2>&1 | grep -v "^   Compiling" | grep -v "^    Finished" | grep -E "(warning: datto-api|error)" || true
+        echo "Rust client generated successfully!"
+    fi
 else
     echo ""
     echo "Skipping Rust client (cargo not found)"

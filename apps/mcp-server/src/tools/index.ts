@@ -503,8 +503,8 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.getSite(client, args as Parameters<typeof siteTools.getSite>[1]),
   },
   {
-    name: 'list-site-devices',
-    description: '🔧 [Advanced] List site devices (raw API). Included in get-site-health.',
+    name: 'get-site-devices',
+    description: '🔧 [Advanced] Get site devices (raw API). Included in get-site-health.',
     inputSchema: {
       type: 'object',
       properties: {

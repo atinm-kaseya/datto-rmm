@@ -1,0 +1,52 @@
+[package]
+name = "datto-rmm-mcp-server"
+description = "MCP server for Datto RMM - enables AI assistants to interact with Datto RMM (Rust implementation)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[[bin]]
+name = "datto-rmm-mcp"
+path = "src/main.rs"
+
+[dependencies]
+# MCP SDK
+rmcp = { version = "1.3", features = ["server", "transport-io"] }
+rmcp-macros = "1.3"
+
+# Datto API client (our Rust crate)
+datto-api = { path = "../datto-api" }
+
+# Async runtime
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "sync", "time"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Schema generation for tool parameters
+schemars = { version = "0.8", features = ["chrono"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Environment variables
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# CLI argument parsing
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio-test = "0.4"

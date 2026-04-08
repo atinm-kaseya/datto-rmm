@@ -24,15 +24,16 @@
 
 mod client;
 mod platforms;
+pub mod api;
+pub mod generated;
+pub mod serde_helpers;
 
 pub use client::{Credentials, DattoClient, Error};
 pub use platforms::{Platform, PlatformParseError};
 
-// Generated API types
-#[cfg(has_generated_api)]
-mod generated {
-    include!(concat!(env!("OUT_DIR"), "/generated.rs"));
-}
+// Re-export commonly used generated types
+pub use generated::models::alert::Priority;
+pub use api::PaginationQuery;
 
 #[cfg(has_generated_api)]
 pub use generated::*;

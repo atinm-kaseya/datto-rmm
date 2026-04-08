@@ -166,6 +166,213 @@ impl DattoClient {
     pub fn http_client(&self) -> &HttpClient {
         &self.http_client
     }
+
+    /// Make an authenticated GET request.
+    ///
+    /// Automatically adds the Authorization header with a valid access token.
+    pub async fn get<T: serde::de::DeserializeOwned>(
+        &self,
+        path: &str,
+    ) -> Result<T, Error> {
+        let token = self.ensure_token().await?;
+        let url = format!("{}{}", self.platform.base_url(), path);
+
+        let response = self
+            .http_client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .send()
+            .await
+            .map_err(Error::HttpClient)?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::Api {
+                status: status.as_u16(),
+                message: body,
+            });
+        }
+
+        response
+            .json::<T>()
+            .await
+            .map_err(Error::HttpClient)
+    }
+
+    /// Make an authenticated GET request with query parameters.
+    pub async fn get_with_query<T: serde::de::DeserializeOwned, Q: serde::Serialize>(
+        &self,
+        path: &str,
+        query: &Q,
+    ) -> Result<T, Error> {
+        let token = self.ensure_token().await?;
+        let url = format!("{}{}", self.platform.base_url(), path);
+
+        let response = self
+            .http_client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .query(query)
+            .send()
+            .await
+            .map_err(Error::HttpClient)?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::Api {
+                status: status.as_u16(),
+                message: body,
+            });
+        }
+
+        // Get the response body as text first for better error reporting
+        let body_text = response.text().await.map_err(Error::HttpClient)?;
+        
+        serde_json::from_str::<T>(&body_text).map_err(|e| {
+            // Include both the parse error and a sample of the response
+            let sample = if body_text.len() > 500 {
+                format!("{}...", &body_text[..500])
+            } else {
+                body_text.clone()
+            };
+            Error::Parse(format!(
+                "Failed to parse response: {}\nResponse body: {}",
+                e, sample
+            ))
+        })
+    }
+
+    /// Make an authenticated POST request.
+    pub async fn post<T: serde::de::DeserializeOwned, B: serde::Serialize>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T, Error> {
+        let token = self.ensure_token().await?;
+        let url = format!("{}{}", self.platform.base_url(), path);
+
+        let response = self
+            .http_client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .json(body)
+            .send()
+            .await
+            .map_err(Error::HttpClient)?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::Api {
+                status: status.as_u16(),
+                message: body,
+            });
+        }
+
+        response
+            .json::<T>()
+            .await
+            .map_err(Error::HttpClient)
+    }
+
+    /// Make an authenticated PUT request.
+    pub async fn put<T: serde::de::DeserializeOwned, B: serde::Serialize>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T, Error> {
+        let token = self.ensure_token().await?;
+        let url = format!("{}{}", self.platform.base_url(), path);
+
+        let response = self
+            .http_client
+            .put(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .json(body)
+            .send()
+            .await
+            .map_err(Error::HttpClient)?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::Api {
+                status: status.as_u16(),
+                message: body,
+            });
+        }
+
+        response
+            .json::<T>()
+            .await
+            .map_err(Error::HttpClient)
+    }
+
+    /// Make an authenticated PATCH request.
+    pub async fn patch<T: serde::de::DeserializeOwned, B: serde::Serialize>(
+        &self,
+        path: &str,
+        body: &B,
+    ) -> Result<T, Error> {
+        let token = self.ensure_token().await?;
+        let url = format!("{}{}", self.platform.base_url(), path);
+
+        let response = self
+            .http_client
+            .patch(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .json(body)
+            .send()
+            .await
+            .map_err(Error::HttpClient)?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::Api {
+                status: status.as_u16(),
+                message: body,
+            });
+        }
+
+        response
+            .json::<T>()
+            .await
+            .map_err(Error::HttpClient)
+    }
+
+    /// Make an authenticated DELETE request.
+    pub async fn delete<T: serde::de::DeserializeOwned>(
+        &self,
+        path: &str,
+    ) -> Result<T, Error> {
+        let token = self.ensure_token().await?;
+        let url = format!("{}{}", self.platform.base_url(), path);
+
+        let response = self
+            .http_client
+            .delete(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .send()
+            .await
+            .map_err(Error::HttpClient)?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::Api {
+                status: status.as_u16(),
+                message: body,
+            });
+        }
+
+        response
+            .json::<T>()
+            .await
+            .map_err(Error::HttpClient)
+    }
 }
 
 /// Errors that can occur when using the Datto RMM API client.
@@ -187,6 +394,10 @@ pub enum Error {
         /// Error message
         message: String,
     },
+
+    /// JSON parsing error
+    #[error("Failed to parse response: {0}")]
+    Parse(String),
 }
 
 #[cfg(test)]
