@@ -1,14 +1,38 @@
 {
-  "project": {
-    "name": "datto-rmm",
-    "type": "typescript-monorepo",
-    "packageManager": "pnpm",
-    "buildTool": "turborepo"
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
   },
   "preferences": {
     "codeStyle": "typescript-strict",
-    "testFramework": "vitest",
     "formatting": "prettier",
-    "linting": "eslint"
+    "linting": "eslint",
+    "testFramework": "vitest"
+  },
+  "project": {
+    "buildTool": "turborepo",
+    "name": "datto-rmm",
+    "packageManager": "pnpm",
+    "type": "typescript-monorepo"
   }
 }

@@ -50,3 +50,8 @@ Cargo.lock
 !.claude/CLAUDE.md
 !.claude/README.md
 !.claude/settings.json
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
