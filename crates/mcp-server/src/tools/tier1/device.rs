@@ -1,5 +1,5 @@
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::{DattoClient, Priority};
+use datto_api::{DattoClient, McpCallHeaders, Priority};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -37,12 +37,12 @@ pub fn get_device_health_tool() -> Tool {
 }
 
 pub fn get_device_health_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: GetDeviceHealthParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            // Resolve device name/MAC/UID to UID using the resolver
+            // Resolve device name/MAC/UID to UID using the resolver (no MCP headers for resolution)
             let site_uid = if let Some(site) = &params.site {
                 Some(crate::utils::resolver::resolve_site(&client, site).await?)
             } else {
@@ -50,18 +50,18 @@ pub fn get_device_health_handler() -> ToolHandler {
             };
 
             let device_uid = crate::utils::resolver::resolve_device(
-                &client, 
+                &client,
                 &params.device,
                 site_uid.as_deref()
             ).await?;
 
             // Fetch device data in parallel
-            let device_fut = client.get_device(&device_uid);
-            let alerts_fut = client.list_device_open_alerts(&device_uid, Some(datto_api::PaginationQuery {
+            let device_fut = client.get_device_with_mcp(&device_uid, &mcp_headers);
+            let alerts_fut = client.list_device_open_alerts_with_mcp(&device_uid, Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
-            let audit_fut = client.get_device_audit(&device_uid);
+            }), &mcp_headers);
+            let audit_fut = client.get_device_audit_with_mcp(&device_uid, &mcp_headers);
 
             let (device_res, alerts_res, audit_res) = tokio::join!(device_fut, alerts_fut, audit_fut);
 
@@ -245,7 +245,7 @@ pub fn diagnose_device_issue_tool() -> Tool {
 }
 
 pub fn diagnose_device_issue_handler() -> ToolHandler {
-    Box::new(|_client: Arc<DattoClient>, args: Value| {
+    Box::new(|_client: Arc<DattoClient>, args: Value, _mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: DiagnoseDeviceIssueParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -270,4 +270,44 @@ pub fn diagnose_device_issue_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_device_health_device_required() {
+        let p: GetDeviceHealthParams =
+            serde_json::from_value(serde_json::json!({"device": "my-laptop"})).unwrap();
+        assert_eq!(p.device, "my-laptop");
+        assert!(p.site.is_none());
+    }
+
+    #[test]
+    fn get_device_health_missing_device_fails() {
+        assert!(serde_json::from_value::<GetDeviceHealthParams>(serde_json::json!({})).is_err());
+    }
+
+    #[test]
+    fn diagnose_device_issue_device_and_issue_required() {
+        let p: DiagnoseDeviceIssueParams = serde_json::from_value(serde_json::json!({
+            "device": "server-01",
+            "issue": "backup failing"
+        }))
+        .unwrap();
+        assert_eq!(p.device, "server-01");
+        assert_eq!(p.issue, "backup failing");
+        assert!(p.site.is_none());
+    }
+
+    #[test]
+    fn diagnose_device_issue_missing_issue_fails() {
+        assert!(
+            serde_json::from_value::<DiagnoseDeviceIssueParams>(
+                serde_json::json!({"device": "server-01"})
+            )
+            .is_err()
+        );
+    }
 }

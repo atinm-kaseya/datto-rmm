@@ -1,12 +1,11 @@
 //! Tier 2: System and Filter API tools
 
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::DattoClient;
+use datto_api::{DattoClient, McpCallHeaders};
 use rmcp::model::Tool;
 use serde_json::Value;
 use std::sync::Arc;
 
-// System tools
 pub fn get_system_status_tool() -> Tool {
     tool_helpers::create_tool_no_params(
         "get-system-status",
@@ -15,9 +14,11 @@ pub fn get_system_status_tool() -> Tool {
 }
 
 pub fn get_system_status_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, _args: Value| {
+    Box::new(|client: Arc<DattoClient>, _args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
-            let data = client.get_system_status().await
+            let data = client
+                .get_system_status_with_mcp(&mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get system status: {}", e)))?;
 
             let json_data = serde_json::to_value(&data)
@@ -40,9 +41,11 @@ pub fn get_rate_limit_tool() -> Tool {
 }
 
 pub fn get_rate_limit_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, _args: Value| {
+    Box::new(|client: Arc<DattoClient>, _args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
-            let data = client.get_rate_limit_info().await
+            let data = client
+                .get_rate_limit_info_with_mcp(&mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get rate limit info: {}", e)))?;
 
             let json_data = serde_json::to_value(&data)
@@ -65,9 +68,11 @@ pub fn get_pagination_config_tool() -> Tool {
 }
 
 pub fn get_pagination_config_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, _args: Value| {
+    Box::new(|client: Arc<DattoClient>, _args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
-            let data = client.get_pagination_config().await
+            let data = client
+                .get_pagination_config_with_mcp(&mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get pagination config: {}", e)))?;
 
             let json_data = serde_json::to_value(&data)
@@ -82,7 +87,6 @@ pub fn get_pagination_config_handler() -> ToolHandler {
     })
 }
 
-// Filter tools
 pub fn list_default_filters_tool() -> Tool {
     tool_helpers::create_tool_no_params(
         "list-default-filters",
@@ -91,9 +95,11 @@ pub fn list_default_filters_tool() -> Tool {
 }
 
 pub fn list_default_filters_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, _args: Value| {
+    Box::new(|client: Arc<DattoClient>, _args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
-            let data = client.list_default_filters(None).await
+            let data = client
+                .list_default_filters_with_mcp(None, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list default filters: {}", e)))?;
 
             let json_data = serde_json::to_value(&data)
@@ -116,9 +122,11 @@ pub fn list_custom_filters_tool() -> Tool {
 }
 
 pub fn list_custom_filters_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, _args: Value| {
+    Box::new(|client: Arc<DattoClient>, _args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
-            let data = client.list_custom_filters(None).await
+            let data = client
+                .list_custom_filters_with_mcp(None, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list custom filters: {}", e)))?;
 
             let json_data = serde_json::to_value(&data)

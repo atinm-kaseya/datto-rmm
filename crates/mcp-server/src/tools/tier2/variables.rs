@@ -1,14 +1,13 @@
 //! Tier 2: Variable and Proxy API tools
 
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::DattoClient;
+use datto_api::{DattoClient, McpCallHeaders};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
 
-// Account variable operations
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct CreateAccountVariableParams {
     pub name: String,
@@ -23,7 +22,7 @@ pub fn create_account_variable_tool() -> Tool {
 }
 
 pub fn create_account_variable_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: CreateAccountVariableParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -33,7 +32,9 @@ pub fn create_account_variable_handler() -> ToolHandler {
                 value: Some(params.value.clone()),
                 ..Default::default()
             };
-            let variable = client.create_account_variable(&request).await
+            let variable = client
+                .create_account_variable_with_mcp(&request, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to create account variable: {}", e)))?;
 
             let data = serde_json::to_value(&variable)
@@ -65,7 +66,7 @@ pub fn update_account_variable_tool() -> Tool {
 }
 
 pub fn update_account_variable_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: UpdateAccountVariableParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -78,7 +79,9 @@ pub fn update_account_variable_handler() -> ToolHandler {
                 value: params.value.clone(),
                 ..Default::default()
             };
-            let variable = client.update_account_variable(variable_id, &request).await
+            let variable = client
+                .update_account_variable_with_mcp(variable_id, &request, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to update account variable: {}", e)))?;
 
             let data = serde_json::to_value(&variable)
@@ -106,7 +109,7 @@ pub fn delete_account_variable_tool() -> Tool {
 }
 
 pub fn delete_account_variable_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: DeleteAccountVariableParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -114,7 +117,9 @@ pub fn delete_account_variable_handler() -> ToolHandler {
             let variable_id: i32 = params.variable_id.parse()
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid variable_id: {}", e)))?;
 
-            client.delete_account_variable(variable_id).await
+            client
+                .delete_account_variable_with_mcp(variable_id, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to delete account variable: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -133,7 +138,6 @@ pub fn delete_account_variable_handler() -> ToolHandler {
     })
 }
 
-// Site variable operations
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct CreateSiteVariableParams {
     pub site_uid: String,
@@ -149,7 +153,7 @@ pub fn create_site_variable_tool() -> Tool {
 }
 
 pub fn create_site_variable_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: CreateSiteVariableParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -159,7 +163,9 @@ pub fn create_site_variable_handler() -> ToolHandler {
                 value: Some(params.value.clone()),
                 ..Default::default()
             };
-            let variable = client.create_site_variable(&params.site_uid, &request).await
+            let variable = client
+                .create_site_variable_with_mcp(&params.site_uid, &request, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to create site variable: {}", e)))?;
 
             let data = serde_json::to_value(&variable)
@@ -192,7 +198,7 @@ pub fn update_site_variable_tool() -> Tool {
 }
 
 pub fn update_site_variable_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: UpdateSiteVariableParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -205,7 +211,9 @@ pub fn update_site_variable_handler() -> ToolHandler {
                 value: params.value.clone(),
                 ..Default::default()
             };
-            let variable = client.update_site_variable(&params.site_uid, variable_id, &request).await
+            let variable = client
+                .update_site_variable_with_mcp(&params.site_uid, variable_id, &request, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to update site variable: {}", e)))?;
 
             let data = serde_json::to_value(&variable)
@@ -234,7 +242,7 @@ pub fn delete_site_variable_tool() -> Tool {
 }
 
 pub fn delete_site_variable_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: DeleteSiteVariableParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -242,7 +250,9 @@ pub fn delete_site_variable_handler() -> ToolHandler {
             let variable_id: i32 = params.variable_id.parse()
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid variable_id: {}", e)))?;
 
-            client.delete_site_variable(&params.site_uid, variable_id).await
+            client
+                .delete_site_variable_with_mcp(&params.site_uid, variable_id, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to delete site variable: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -262,7 +272,6 @@ pub fn delete_site_variable_handler() -> ToolHandler {
     })
 }
 
-// Site proxy operations
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct UpdateSiteProxyParams {
     pub site_uid: String,
@@ -278,7 +287,7 @@ pub fn update_site_proxy_tool() -> Tool {
 }
 
 pub fn update_site_proxy_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: UpdateSiteProxyParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -288,7 +297,9 @@ pub fn update_site_proxy_handler() -> ToolHandler {
                 port: Some(params.port),
                 ..Default::default()
             };
-            client.update_site_proxy(&params.site_uid, &proxy).await
+            client
+                .update_site_proxy_with_mcp(&params.site_uid, &proxy, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to update site proxy: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -321,12 +332,14 @@ pub fn delete_site_proxy_tool() -> Tool {
 }
 
 pub fn delete_site_proxy_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: DeleteSiteProxyParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            client.delete_site_proxy(&params.site_uid).await
+            client
+                .delete_site_proxy_with_mcp(&params.site_uid, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to delete site proxy: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -343,4 +356,102 @@ pub fn delete_site_proxy_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_account_variable_params_both_required() {
+        let p: CreateAccountVariableParams =
+            serde_json::from_value(serde_json::json!({"name": "MY_VAR", "value": "hello"}))
+                .unwrap();
+        assert_eq!(p.name, "MY_VAR");
+        assert_eq!(p.value, "hello");
+    }
+
+    #[test]
+    fn update_account_variable_params_only_id_required() {
+        let p: UpdateAccountVariableParams =
+            serde_json::from_value(serde_json::json!({"variable_id": "var-1"})).unwrap();
+        assert_eq!(p.variable_id, "var-1");
+        assert!(p.name.is_none());
+        assert!(p.value.is_none());
+    }
+
+    #[test]
+    fn update_account_variable_params_with_both_fields() {
+        let p: UpdateAccountVariableParams = serde_json::from_value(serde_json::json!({
+            "variable_id": "var-1",
+            "name": "NEW_NAME",
+            "value": "new_val"
+        }))
+        .unwrap();
+        assert_eq!(p.name, Some("NEW_NAME".into()));
+        assert_eq!(p.value, Some("new_val".into()));
+    }
+
+    #[test]
+    fn delete_account_variable_params_required() {
+        let p: DeleteAccountVariableParams =
+            serde_json::from_value(serde_json::json!({"variable_id": "var-2"})).unwrap();
+        assert_eq!(p.variable_id, "var-2");
+    }
+
+    #[test]
+    fn create_site_variable_params_all_required() {
+        let p: CreateSiteVariableParams = serde_json::from_value(serde_json::json!({
+            "site_uid": "site-1",
+            "name": "SITE_VAR",
+            "value": "42"
+        }))
+        .unwrap();
+        assert_eq!(p.site_uid, "site-1");
+        assert_eq!(p.name, "SITE_VAR");
+        assert_eq!(p.value, "42");
+    }
+
+    #[test]
+    fn update_site_variable_params_ids_required_fields_optional() {
+        let p: UpdateSiteVariableParams = serde_json::from_value(serde_json::json!({
+            "site_uid": "site-1",
+            "variable_id": "var-3"
+        }))
+        .unwrap();
+        assert_eq!(p.site_uid, "site-1");
+        assert_eq!(p.variable_id, "var-3");
+        assert!(p.name.is_none());
+        assert!(p.value.is_none());
+    }
+
+    #[test]
+    fn delete_site_variable_params_both_required() {
+        let p: DeleteSiteVariableParams = serde_json::from_value(serde_json::json!({
+            "site_uid": "site-1",
+            "variable_id": "var-4"
+        }))
+        .unwrap();
+        assert_eq!(p.site_uid, "site-1");
+        assert_eq!(p.variable_id, "var-4");
+    }
+
+    #[test]
+    fn update_site_proxy_params_all_required() {
+        let p: UpdateSiteProxyParams = serde_json::from_value(serde_json::json!({
+            "site_uid": "site-1",
+            "host": "proxy.example.com",
+            "port": 8080
+        }))
+        .unwrap();
+        assert_eq!(p.host, "proxy.example.com");
+        assert_eq!(p.port, 8080);
+    }
+
+    #[test]
+    fn delete_site_proxy_params_uid_required() {
+        let p: DeleteSiteProxyParams =
+            serde_json::from_value(serde_json::json!({"site_uid": "site-9"})).unwrap();
+        assert_eq!(p.site_uid, "site-9");
+    }
 }

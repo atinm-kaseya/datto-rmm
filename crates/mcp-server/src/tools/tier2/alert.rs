@@ -1,7 +1,7 @@
 //! Tier 2: Alert API tools
 
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::DattoClient;
+use datto_api::{DattoClient, McpCallHeaders};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -21,13 +21,13 @@ pub fn get_alert_tool() -> Tool {
 }
 
 pub fn get_alert_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: AlertUidParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let alert = client
-                .get_alert(&params.alert_uid)
+                .get_alert_with_mcp(&params.alert_uid, &mcp_headers)
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get alert: {}", e)))?;
 
@@ -37,37 +37,37 @@ pub fn get_alert_handler() -> ToolHandler {
                 Some(datto_api::Priority::Moderate) => "🟡",
                 _ => "🟢",
             };
-            
+
             let mut summary = format!(
                 "# {} Alert\n\n**UID:** `{}`\n",
                 priority_icon,
                 alert.alert_uid.as_deref().unwrap_or("N/A")
             );
-            
+
             let resolved_status = if alert.resolved.unwrap_or(false) { "✅" } else { "❌" };
             let muted_status = if alert.muted.unwrap_or(false) { "✅" } else { "❌" };
-            
+
             summary.push_str(&format!("**Resolved:** {}\n", resolved_status));
             summary.push_str(&format!("**Muted:** {}\n\n", muted_status));
-            
+
             let device_name = alert.alert_source_info.as_ref()
                 .and_then(|s| s.device_name.as_deref())
                 .unwrap_or("Unknown");
             let site_name = alert.alert_source_info.as_ref()
                 .and_then(|s| s.site_name.as_deref())
                 .unwrap_or("Unknown");
-            
+
             summary.push_str(&format!("**Device:** {}\n", device_name));
             summary.push_str(&format!("**Site:** {}\n\n", site_name));
-            
+
             if let Some(diagnostics) = &alert.diagnostics {
                 summary.push_str(&format!("## Diagnostics\n\n{}\n\n", diagnostics));
             }
-            
+
             if let Some(ticket) = &alert.ticket_number {
                 summary.push_str(&format!("**Ticket:** {}\n", ticket));
             }
-            
+
             let data = serde_json::to_value(&alert)
                 .map_err(|e| crate::Error::Internal(format!("Serialization failed: {}", e)))?;
 
@@ -88,13 +88,13 @@ pub fn resolve_alert_tool() -> Tool {
 }
 
 pub fn resolve_alert_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: AlertUidParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             client
-                .resolve_alert(&params.alert_uid)
+                .resolve_alert_with_mcp(&params.alert_uid, &mcp_headers)
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to resolve alert: {}", e)))?;
 
@@ -111,4 +111,21 @@ pub fn resolve_alert_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn alert_uid_params_required() {
+        let p: AlertUidParams =
+            serde_json::from_value(serde_json::json!({"alert_uid": "alert-xyz"})).unwrap();
+        assert_eq!(p.alert_uid, "alert-xyz");
+    }
+
+    #[test]
+    fn alert_uid_params_missing_fails() {
+        assert!(serde_json::from_value::<AlertUidParams>(serde_json::json!({})).is_err());
+    }
 }

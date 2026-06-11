@@ -26,9 +26,11 @@ mod client;
 mod platforms;
 pub mod api;
 pub mod generated;
+pub mod mcp_headers;
 pub mod serde_helpers;
 
 pub use client::{Credentials, DattoClient, Error};
+pub use mcp_headers::McpCallHeaders;
 pub use platforms::{Platform, PlatformParseError};
 
 // Re-export commonly used generated types

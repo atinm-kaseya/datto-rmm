@@ -1,7 +1,7 @@
 //! Tier 2: Job API tools
 
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::DattoClient;
+use datto_api::{DattoClient, McpCallHeaders};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -27,13 +27,13 @@ pub fn get_job_tool() -> Tool {
 }
 
 pub fn get_job_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: JobUidParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let job = client
-                .get_job(&params.job_uid)
+                .get_job_with_mcp(&params.job_uid, &mcp_headers)
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get job: {}", e)))?;
 
@@ -57,13 +57,13 @@ pub fn get_job_results_tool() -> Tool {
 }
 
 pub fn get_job_results_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: JobUidParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let results = client
-                .get_job_results(&params.job_uid)
+                .get_job_results_with_mcp(&params.job_uid, &mcp_headers)
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get job results: {}", e)))?;
 
@@ -79,7 +79,6 @@ pub fn get_job_results_handler() -> ToolHandler {
     })
 }
 
-// Additional job tools
 pub fn get_job_components_tool() -> Tool {
     tool_helpers::create_tool::<JobUidParams>(
         "get-job-components",
@@ -88,12 +87,14 @@ pub fn get_job_components_tool() -> Tool {
 }
 
 pub fn get_job_components_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: JobUidParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            let data = client.get_job_components(&params.job_uid).await
+            let data = client
+                .get_job_components_with_mcp(&params.job_uid, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get job components: {}", e)))?;
 
             let json_data = serde_json::to_value(&data)
@@ -116,12 +117,14 @@ pub fn get_job_stdout_tool() -> Tool {
 }
 
 pub fn get_job_stdout_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: JobOutputParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            let stdout = client.get_job_stdout(&params.job_uid, &params.device_uid).await
+            let stdout = client
+                .get_job_stdout_with_mcp(&params.job_uid, &params.device_uid, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get job stdout: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -148,12 +151,14 @@ pub fn get_job_stderr_tool() -> Tool {
 }
 
 pub fn get_job_stderr_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: JobOutputParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            let stderr = client.get_job_stderr(&params.job_uid, &params.device_uid).await
+            let stderr = client
+                .get_job_stderr_with_mcp(&params.job_uid, &params.device_uid, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get job stderr: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -170,4 +175,40 @@ pub fn get_job_stderr_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn job_uid_params_required() {
+        let p: JobUidParams =
+            serde_json::from_value(serde_json::json!({"job_uid": "job-abc"})).unwrap();
+        assert_eq!(p.job_uid, "job-abc");
+    }
+
+    #[test]
+    fn job_uid_params_missing_fails() {
+        assert!(serde_json::from_value::<JobUidParams>(serde_json::json!({})).is_err());
+    }
+
+    #[test]
+    fn job_output_params_both_required() {
+        let p: JobOutputParams = serde_json::from_value(serde_json::json!({
+            "job_uid": "job-1",
+            "device_uid": "dev-2"
+        }))
+        .unwrap();
+        assert_eq!(p.job_uid, "job-1");
+        assert_eq!(p.device_uid, "dev-2");
+    }
+
+    #[test]
+    fn job_output_params_missing_device_uid_fails() {
+        assert!(
+            serde_json::from_value::<JobOutputParams>(serde_json::json!({"job_uid": "j1"}))
+                .is_err()
+        );
+    }
 }

@@ -22,13 +22,12 @@ coverage/
 .idea/
 *.swp
 *.swo
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
+.vscode/
 
 # OS
 .DS_Store
 Thumbs.db
+*~
 
 # Logs
 *.log
@@ -50,6 +49,12 @@ Cargo.lock
 !.claude/CLAUDE.md
 !.claude/README.md
 !.claude/settings.json
+
+# AI docs (local planning artifacts)
+.ai-docs/
+
+# Support files with real credentials
+Support/Claude/claude_desktop_config.json
 
 # Beads / Dolt files (added by bd init)
 .dolt/

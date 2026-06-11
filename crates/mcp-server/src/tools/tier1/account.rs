@@ -1,5 +1,5 @@
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::{DattoClient, Priority};
+use datto_api::{DattoClient, McpCallHeaders, Priority};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -32,21 +32,21 @@ pub fn get_account_dashboard_tool() -> Tool {
 }
 
 pub fn get_account_dashboard_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: GetAccountDashboardParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             // Parallel API calls for dashboard data
-            let account_fut = client.get_account();
-            let sites_fut = client.list_sites(Some(datto_api::PaginationQuery {
+            let account_fut = client.get_account_with_mcp(&mcp_headers);
+            let sites_fut = client.list_sites_with_mcp(Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
-            let alerts_fut = client.list_open_alerts(Some(datto_api::PaginationQuery {
+            }), &mcp_headers);
+            let alerts_fut = client.list_open_alerts_with_mcp(Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
+            }), &mcp_headers);
 
             let (account_res, sites_res, alerts_res) = tokio::join!(account_fut, sites_fut, alerts_fut);
 
@@ -327,20 +327,20 @@ pub fn find_sites_with_issues_tool() -> Tool {
 }
 
 pub fn find_sites_with_issues_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: FindSitesWithIssuesParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             // Fetch sites and alerts in parallel
-            let sites_fut = client.list_sites(Some(datto_api::PaginationQuery {
+            let sites_fut = client.list_sites_with_mcp(Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
-            let alerts_fut = client.list_open_alerts(Some(datto_api::PaginationQuery {
+            }), &mcp_headers);
+            let alerts_fut = client.list_open_alerts_with_mcp(Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
+            }), &mcp_headers);
 
             let (sites_res, alerts_res) = tokio::join!(sites_fut, alerts_fut);
 
@@ -524,17 +524,17 @@ pub fn search_devices_tool() -> Tool {
 }
 
 pub fn search_devices_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: SearchDevicesParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             // Get all devices (no pagination - limit applied after filtering)
             let devices_data = client
-                .list_devices(Some(datto_api::PaginationQuery {
+                .list_devices_with_mcp(Some(datto_api::PaginationQuery {
                     page: None,
                     max: None,
-                }))
+                }), &mcp_headers)
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list devices: {}", e)))?;
 
@@ -674,7 +674,7 @@ pub fn get_account_analytics_tool() -> Tool {
 }
 
 pub fn get_account_analytics_handler() -> ToolHandler {
-    Box::new(|_client: Arc<DattoClient>, args: Value| {
+    Box::new(|_client: Arc<DattoClient>, args: Value, _mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: GetAccountAnalyticsParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -697,4 +697,47 @@ pub fn get_account_analytics_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_account_dashboard_params_time_range_defaults_to_today() {
+        let p: GetAccountDashboardParams = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert_eq!(p.time_range, "today");
+    }
+
+    #[test]
+    fn get_account_dashboard_params_custom_time_range() {
+        let p: GetAccountDashboardParams =
+            serde_json::from_value(serde_json::json!({"time_range": "week"})).unwrap();
+        assert_eq!(p.time_range, "week");
+    }
+
+    #[test]
+    fn find_sites_with_issues_defaults() {
+        let p: FindSitesWithIssuesParams = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert_eq!(p.severity, "critical");
+        assert_eq!(p.min_offline_devices, 1);
+    }
+
+    #[test]
+    fn search_devices_params_query_required() {
+        let p: SearchDevicesParams =
+            serde_json::from_value(serde_json::json!({"query": "laptop"})).unwrap();
+        assert_eq!(p.query, "laptop");
+    }
+
+    #[test]
+    fn search_devices_params_missing_query_fails() {
+        assert!(serde_json::from_value::<SearchDevicesParams>(serde_json::json!({})).is_err());
+    }
+
+    #[test]
+    fn get_account_analytics_time_range_defaults_to_month() {
+        let p: GetAccountAnalyticsParams = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert_eq!(p.time_range, "month");
+    }
 }

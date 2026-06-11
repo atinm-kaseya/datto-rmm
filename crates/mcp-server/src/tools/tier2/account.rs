@@ -1,7 +1,7 @@
 //! Tier 2: Account-level API tools
 
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::DattoClient;
+use datto_api::{DattoClient, McpCallHeaders};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -16,10 +16,10 @@ pub fn get_account_tool() -> Tool {
 }
 
 pub fn get_account_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, _args: Value| {
+    Box::new(|client: Arc<DattoClient>, _args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let account = client
-                .get_account()
+                .get_account_with_mcp(&mcp_headers)
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get account: {}", e)))?;
 
@@ -51,16 +51,19 @@ pub fn list_sites_tool() -> Tool {
 }
 
 pub fn list_sites_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: ListSitesParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let sites_data = client
-                .list_sites(Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_sites_with_mcp(
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list sites: {}", e)))?;
 
@@ -92,16 +95,19 @@ pub fn list_devices_tool() -> Tool {
 }
 
 pub fn list_devices_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: ListDevicesParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let devices_data = client
-                .list_devices(Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_devices_with_mcp(
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list devices: {}", e)))?;
 
@@ -133,16 +139,19 @@ pub fn list_open_alerts_tool() -> Tool {
 }
 
 pub fn list_open_alerts_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: ListAlertsParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let alerts_data = client
-                .list_open_alerts(Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_open_alerts_with_mcp(
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list alerts: {}", e)))?;
 
@@ -166,16 +175,19 @@ pub fn list_resolved_alerts_tool() -> Tool {
 }
 
 pub fn list_resolved_alerts_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: ListAlertsParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let alerts_data = client
-                .list_resolved_alerts(Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_resolved_alerts_with_mcp(
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list resolved alerts: {}", e)))?;
 
@@ -207,16 +219,19 @@ pub fn list_components_tool() -> Tool {
 }
 
 pub fn list_components_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: PaginationParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let data = client
-                .list_components(Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_components_with_mcp(
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list components: {}", e)))?;
 
@@ -240,16 +255,19 @@ pub fn list_account_variables_tool() -> Tool {
 }
 
 pub fn list_account_variables_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: PaginationParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let data = client
-                .list_account_variables(Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_account_variables_with_mcp(
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list account variables: {}", e)))?;
 
@@ -273,16 +291,19 @@ pub fn list_users_tool() -> Tool {
 }
 
 pub fn list_users_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: PaginationParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let data = client
-                .list_users(Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_users_with_mcp(
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list users: {}", e)))?;
 
@@ -296,4 +317,82 @@ pub fn list_users_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct MeteringSummaryParams {
+    /// Filter by call origin: "mcp", "api", or "all" (default: "all")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origin: Option<String>,
+}
+
+pub fn get_metering_summary_tool() -> Tool {
+    tool_helpers::create_tool::<MeteringSummaryParams>(
+        "get-api-metering-summary",
+        "Get API call metering statistics for this account. Returns total calls, breakdown by origin (mcp vs api), top endpoints, top MCP agents, and error rate. Optionally filter by origin.",
+    )
+}
+
+pub fn get_metering_summary_handler() -> ToolHandler {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
+        Box::pin(async move {
+            let params: MeteringSummaryParams = serde_json::from_value(args)
+                .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
+
+            let origin = params.origin.as_deref();
+
+            let data = client
+                .get_metering_summary_with_mcp(origin, &mcp_headers)
+                .await
+                .map_err(|e| crate::Error::Api(format!("Failed to get metering summary: {}", e)))?;
+
+            Ok(tool_helpers::instructed_result(
+                data,
+                "Present these API metering statistics clearly. Show total calls prominently, then a breakdown of MCP vs direct API calls with percentages. List the top endpoints by call count in a table. If there are MCP agents, list the top agents. Highlight the error rate with a warning if it exceeds 5%. Note that these counts reset when the service restarts.",
+                Some(vec!["summary_stats", "percentage_breakdown", "table", "warning_threshold"])
+            ))
+        })
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn list_sites_params_all_optional() {
+        let p: ListSitesParams = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert!(p.page.is_none());
+        assert!(p.max.is_none());
+    }
+
+    #[test]
+    fn list_sites_params_with_pagination() {
+        let p: ListSitesParams =
+            serde_json::from_value(serde_json::json!({"page": 2, "max": 100})).unwrap();
+        assert_eq!(p.page, Some(2));
+        assert_eq!(p.max, Some(100));
+    }
+
+    #[test]
+    fn list_devices_params_all_optional() {
+        let p: ListDevicesParams = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert!(p.page.is_none());
+        assert!(p.max.is_none());
+    }
+
+    #[test]
+    fn pagination_params_all_optional() {
+        let p: PaginationParams = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert!(p.page.is_none());
+        assert!(p.max.is_none());
+    }
+
+    #[test]
+    fn list_alerts_params_with_values() {
+        let p: ListAlertsParams =
+            serde_json::from_value(serde_json::json!({"page": 1, "max": 25})).unwrap();
+        assert_eq!(p.page, Some(1));
+        assert_eq!(p.max, Some(25));
+    }
 }

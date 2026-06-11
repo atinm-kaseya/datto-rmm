@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "datto-rmm": {
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "X-Datto-Api-Key": "<your-api-key>",
+        "X-Datto-Api-Secret": "<your-api-secret>"
+      }
+    }
+  }
+}

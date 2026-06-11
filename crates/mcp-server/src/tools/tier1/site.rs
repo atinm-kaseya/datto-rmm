@@ -1,5 +1,5 @@
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::{DattoClient, Priority};
+use datto_api::{DattoClient, McpCallHeaders, Priority};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -30,29 +30,29 @@ pub fn get_site_health_tool() -> Tool {
 }
 
 pub fn get_site_health_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: GetSiteHealthParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            // Step 1: Resolve site UID (if name provided, search for it)
+            // Step 1: Resolve site UID (resolver uses base client, no MCP headers)
             let site_uid = crate::utils::resolver::resolve_site(&client, &params.site).await?;
 
             // Step 2: Fetch site data in parallel
-            let site_fut = client.get_site(&site_uid);
-            let devices_fut = client.list_site_devices(&site_uid, Some(datto_api::PaginationQuery {
+            let site_fut = client.get_site_with_mcp(&site_uid, &mcp_headers);
+            let devices_fut = client.list_site_devices_with_mcp(&site_uid, Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
-            let alerts_fut = client.list_site_open_alerts(&site_uid, Some(datto_api::PaginationQuery {
+            }), &mcp_headers);
+            let alerts_fut = client.list_site_open_alerts_with_mcp(&site_uid, Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
-            let settings_fut = client.get_site_settings(&site_uid);
-            let variables_fut = client.list_site_variables(&site_uid, Some(datto_api::PaginationQuery {
+            }), &mcp_headers);
+            let settings_fut = client.get_site_settings_with_mcp(&site_uid, &mcp_headers);
+            let variables_fut = client.list_site_variables_with_mcp(&site_uid, Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
+            }), &mcp_headers);
 
             let (site_res, devices_res, alerts_res, settings_res, variables_res) = tokio::join!(
                 site_fut, devices_fut, alerts_fut, settings_fut, variables_fut
@@ -406,21 +406,19 @@ pub fn list_site_devices_tool() -> Tool {
 }
 
 pub fn list_site_devices_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: ListSiteDevicesParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            // Resolve site UID
+            // Resolve site UID (resolver uses base client, no MCP headers)
             let site_uid = crate::utils::resolver::resolve_site(&client, &params.site).await?;
 
-            // Fetch devices and optionally alerts
-            let devices_fut = client.list_site_devices(&site_uid, Some(datto_api::PaginationQuery {
+            // Fetch devices
+            let devices_res = client.list_site_devices_with_mcp(&site_uid, Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            }));
-
-            let devices_res = devices_fut.await
+            }), &mcp_headers).await
                 .map_err(|e| crate::Error::Api(format!("Failed to fetch devices: {}", e)))?;
 
             let mut devices = devices_res.devices.unwrap_or_default();
@@ -428,10 +426,10 @@ pub fn list_site_devices_handler() -> ToolHandler {
             // Fetch alerts if needed
             let mut alert_counts = std::collections::HashMap::new();
             if params.has_alerts {
-                let alerts_res = client.list_site_open_alerts(&site_uid, Some(datto_api::PaginationQuery {
+                let alerts_res = client.list_site_open_alerts_with_mcp(&site_uid, Some(datto_api::PaginationQuery {
                     page: None,
                     max: None,
-                })).await
+                }), &mcp_headers).await
                 .map_err(|e| crate::Error::Api(format!("Failed to fetch alerts: {}", e)))?;
 
                 let alerts = alerts_res.alerts.unwrap_or_default();
@@ -651,19 +649,19 @@ pub fn get_site_alerts_tool() -> Tool {
 }
 
 pub fn get_site_alerts_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: GetSiteAlertsParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            // Resolve site UID
+            // Resolve site UID (resolver uses base client, no MCP headers)
             let site_uid = crate::utils::resolver::resolve_site(&client, &params.site).await?;
 
             // Fetch alerts
-            let alerts_res = client.list_site_open_alerts(&site_uid, Some(datto_api::PaginationQuery {
+            let alerts_res = client.list_site_open_alerts_with_mcp(&site_uid, Some(datto_api::PaginationQuery {
                 page: None,
                 max: None,
-            })).await
+            }), &mcp_headers).await
             .map_err(|e| crate::Error::Api(format!("Failed to fetch alerts: {}", e)))?;
 
             let mut alerts = alerts_res.alerts.unwrap_or_default();
@@ -776,7 +774,7 @@ pub fn run_site_component_tool() -> Tool {
 }
 
 pub fn run_site_component_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, _mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: RunSiteComponentParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -878,21 +876,21 @@ pub fn bulk_update_site_devices_tool() -> Tool {
 }
 
 pub fn bulk_update_site_devices_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: BulkUpdateSiteDevicesParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            // Resolve site UID
+            // Resolve site UID (resolver uses base client, no MCP headers)
             let site_uid = crate::utils::resolver::resolve_site(&client, &params.site).await?;
 
             // Parse device selection
             let device_count = if params.devices.to_lowercase() == "all" {
                 // Get actual count
-                let devices_res = client.list_site_devices(&site_uid, Some(datto_api::PaginationQuery {
+                let devices_res = client.list_site_devices_with_mcp(&site_uid, Some(datto_api::PaginationQuery {
                     page: None,
                     max: None,
-                })).await
+                }), &mcp_headers).await
                 .map_err(|e| crate::Error::Api(format!("Failed to count devices: {}", e)))?;
                 devices_res.page_details
                     .and_then(|pd| pd.total_count)
@@ -960,4 +958,65 @@ pub fn bulk_update_site_devices_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_site_health_site_required() {
+        let p: GetSiteHealthParams =
+            serde_json::from_value(serde_json::json!({"site": "HQ"})).unwrap();
+        assert_eq!(p.site, "HQ");
+        assert!(!p.include_device_details);
+    }
+
+    #[test]
+    fn get_site_health_include_device_details_flag() {
+        let p: GetSiteHealthParams =
+            serde_json::from_value(serde_json::json!({"site": "HQ", "include_device_details": true}))
+                .unwrap();
+        assert!(p.include_device_details);
+    }
+
+    #[test]
+    fn list_site_devices_site_required_rest_optional() {
+        let p: ListSiteDevicesParams =
+            serde_json::from_value(serde_json::json!({"site": "site-1"})).unwrap();
+        assert_eq!(p.site, "site-1");
+        assert!(p.status.is_none());
+    }
+
+    #[test]
+    fn get_site_alerts_site_required_severity_optional() {
+        let p: GetSiteAlertsParams =
+            serde_json::from_value(serde_json::json!({"site": "site-1"})).unwrap();
+        assert_eq!(p.site, "site-1");
+        assert!(p.severity.is_none());
+    }
+
+    #[test]
+    fn run_site_component_all_required() {
+        let p: RunSiteComponentParams = serde_json::from_value(serde_json::json!({
+            "site": "site-1",
+            "component": "disk-cleanup",
+            "devices": "all"
+        }))
+        .unwrap();
+        assert_eq!(p.component, "disk-cleanup");
+        assert_eq!(p.devices, "all");
+    }
+
+    #[test]
+    fn bulk_update_site_devices_all_required() {
+        let p: BulkUpdateSiteDevicesParams = serde_json::from_value(serde_json::json!({
+            "site": "site-1",
+            "devices": "all",
+            "updates": {"reboot": true}
+        }))
+        .unwrap();
+        assert_eq!(p.devices, "all");
+        assert_eq!(p.updates, serde_json::json!({"reboot": true}));
+    }
 }

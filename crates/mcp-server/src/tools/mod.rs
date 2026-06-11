@@ -1,16 +1,16 @@
 pub mod tier1;
 pub mod tier2;
 
-use crate::{Error, Result};
-use datto_api::DattoClient;
+use crate::{tool_context::ToolContext, Error, Result};
+use datto_api::{DattoClient, McpCallHeaders};
 use rmcp::model::{CallToolResult, Tool};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Handler function for a tool
-type ToolHandler =
-    Box<dyn Fn(Arc<DattoClient>, Value) -> BoxFuture<'static, Result<CallToolResult>> + Send + Sync>;
+/// Handler function for a tool — receives client, arguments, and MCP context headers.
+pub type ToolHandler =
+    Box<dyn Fn(Arc<DattoClient>, Value, McpCallHeaders) -> BoxFuture<'static, Result<CallToolResult>> + Send + Sync>;
 
 type BoxFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
 
@@ -104,6 +104,7 @@ impl ToolRegistry {
     fn register_tier2_tools(&mut self) {
         // Account tools
         self.register(tier2::account::get_account_tool(), tier2::account::get_account_handler());
+        self.register(tier2::account::get_metering_summary_tool(), tier2::account::get_metering_summary_handler());
         self.register(tier2::account::list_sites_tool(), tier2::account::list_sites_handler());
         self.register(tier2::account::list_devices_tool(), tier2::account::list_devices_handler());
         self.register(tier2::account::list_open_alerts_tool(), tier2::account::list_open_alerts_handler());
@@ -187,6 +188,8 @@ impl ToolRegistry {
         name: &str,
         arguments: &Option<Value>,
         client: Arc<DattoClient>,
+        context: ToolContext,
+        agent_id: &str,
     ) -> Result<CallToolResult> {
         let tool = self
             .tools
@@ -194,8 +197,9 @@ impl ToolRegistry {
             .ok_or_else(|| Error::NotFound(format!("Tool '{}' not found", name)))?;
 
         let args = arguments.clone().unwrap_or(Value::Object(Default::default()));
+        let mcp_headers = context.to_mcp_headers(agent_id);
 
-        (tool.handler)(client, args).await
+        (tool.handler)(client, args, mcp_headers).await
     }
 }
 

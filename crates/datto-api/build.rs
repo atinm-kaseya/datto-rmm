@@ -249,7 +249,7 @@ fn fix_timestamp_fields(generated_dir: &Path) {
                     let old_optional = format!("pub {}: Option<String>", field);
                     if content.contains(&old_optional) {
                         // Find the serde attribute line above
-                        let search_pattern = format!(
+                        let _search_pattern = format!(
                             r#"(#\[serde\([^\]]+\)\]\s+)pub {}: Option<String>"#,
                             field
                         );

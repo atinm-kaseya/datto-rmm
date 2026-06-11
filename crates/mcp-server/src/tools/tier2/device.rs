@@ -1,7 +1,7 @@
 //! Tier 2: Device-level API tools
 
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::DattoClient;
+use datto_api::{DattoClient, McpCallHeaders};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -21,39 +21,16 @@ pub fn get_device_tool() -> Tool {
 }
 
 pub fn get_device_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: DeviceUidParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let device = client
-                .get_device(&params.device_uid)
+                .get_device_with_mcp(&params.device_uid, &mcp_headers)
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get device: {}", e)))?;
 
-            let status_icon = if device.online.unwrap_or(false) { "🟢" } else { "🔴" };
-            let status_text = if device.online.unwrap_or(false) { "Online" } else { "Offline" };
-            
-            let mut summary = format!(
-                "# {}\n\n**Status:** {} {}\n",
-                device.hostname.as_deref().unwrap_or("Unknown Device"),
-                status_icon,
-                status_text
-            );
-            
-            summary.push_str(&format!("**UID:** `{}`\n", device.uid.as_deref().unwrap_or("N/A")));
-            summary.push_str(&format!("**Site:** {}\n", device.site_name.as_deref().unwrap_or("N/A")));
-            summary.push_str(&format!("**OS:** {}\n", device.operating_system.as_deref().unwrap_or("N/A")));
-            
-            if let Some(device_type) = &device.device_type {
-                if let Some(category) = &device_type.category {
-                    summary.push_str(&format!("**Type:** {}\n", category));
-                }
-            }
-            
-            if let Some(int_ip) = &device.int_ip_address {
-                summary.push_str(&format!("**Internal IP:** {}\n", int_ip));
-            }
             let data = serde_json::to_value(&device)
                 .map_err(|e| crate::Error::Internal(format!("Serialization failed: {}", e)))?;
 
@@ -83,21 +60,25 @@ pub fn list_device_open_alerts_tool() -> Tool {
 }
 
 pub fn list_device_open_alerts_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: DeviceListParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let alerts_data = client
-                .list_device_open_alerts(&params.device_uid, Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_device_open_alerts_with_mcp(
+                    &params.device_uid,
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list device alerts: {}", e)))?;
 
             let alerts = alerts_data.alerts.as_ref().map(|a| a.as_slice()).unwrap_or(&[]);
-            
+
             if alerts.is_empty() {
                 let result_data = serde_json::json!({
                     "device_uid": &params.device_uid,
@@ -110,7 +91,7 @@ pub fn list_device_open_alerts_handler() -> ToolHandler {
                     Some(vec!["no_alerts_message", "success_indicator"])
                 ));
             }
-            
+
             let data = serde_json::to_value(&alerts_data)
                 .map_err(|e| crate::Error::Internal(format!("Serialization failed: {}", e)))?;
 
@@ -123,7 +104,6 @@ pub fn list_device_open_alerts_handler() -> ToolHandler {
     })
 }
 
-// Additional device tools
 pub fn list_device_resolved_alerts_tool() -> Tool {
     tool_helpers::create_tool::<DeviceListParams>(
         "list-device-resolved-alerts",
@@ -132,21 +112,25 @@ pub fn list_device_resolved_alerts_tool() -> Tool {
 }
 
 pub fn list_device_resolved_alerts_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: DeviceListParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             let data = client
-                .list_device_resolved_alerts(&params.device_uid, Some(datto_api::PaginationQuery {
-                    page: params.page,
-                    max: params.max,
-                }))
+                .list_device_resolved_alerts_with_mcp(
+                    &params.device_uid,
+                    Some(datto_api::PaginationQuery {
+                        page: params.page,
+                        max: params.max,
+                    }),
+                    &mcp_headers,
+                )
                 .await
                 .map_err(|e| crate::Error::Api(format!("Failed to list resolved alerts: {}", e)))?;
 
             let alerts = data.alerts.as_ref().map(|a| a.as_slice()).unwrap_or(&[]);
-            
+
             if alerts.is_empty() {
                 let result_data = serde_json::json!({
                     "device_uid": &params.device_uid,
@@ -159,7 +143,7 @@ pub fn list_device_resolved_alerts_handler() -> ToolHandler {
                     Some(vec!["no_alerts_message", "success_indicator"])
                 ));
             }
-            
+
             let json_data = serde_json::to_value(&data)
                 .map_err(|e| crate::Error::Internal(format!("Serialization failed: {}", e)))?;
 
@@ -172,7 +156,6 @@ pub fn list_device_resolved_alerts_handler() -> ToolHandler {
     })
 }
 
-// Additional device lookup and management tools
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct DeviceIdParams {
     pub device_id: i32,
@@ -186,12 +169,14 @@ pub fn get_device_by_id_tool() -> Tool {
 }
 
 pub fn get_device_by_id_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: DeviceIdParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            let device = client.get_device_by_id(params.device_id as i64).await
+            let device = client
+                .get_device_by_id_with_mcp(params.device_id as i64, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get device by ID: {}", e)))?;
 
             let data = serde_json::to_value(&device)
@@ -219,12 +204,14 @@ pub fn get_device_by_mac_tool() -> Tool {
 }
 
 pub fn get_device_by_mac_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: MacAddressParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            let device = client.get_device_by_mac(&params.mac_address).await
+            let device = client
+                .get_device_by_mac_with_mcp(&params.mac_address, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to get device by MAC: {}", e)))?;
 
             let data = serde_json::to_value(&device)
@@ -253,12 +240,14 @@ pub fn move_device_tool() -> Tool {
 }
 
 pub fn move_device_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: MoveDeviceParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            client.move_device(&params.device_uid, &params.target_site_uid).await
+            client
+                .move_device_with_mcp(&params.device_uid, &params.target_site_uid, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to move device: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -291,13 +280,15 @@ pub fn set_device_udf_tool() -> Tool {
 }
 
 pub fn set_device_udf_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: SetDeviceUdfParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
-            let udf = datto_api::Udf::default(); // Use generated UDF type - you'd need to map params to this
-            client.set_device_udf(&params.device_uid, &udf).await
+            let udf = datto_api::Udf::default();
+            client
+                .set_device_udf_with_mcp(&params.device_uid, &udf, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to set device UDF: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -330,7 +321,7 @@ pub fn set_device_warranty_tool() -> Tool {
 }
 
 pub fn set_device_warranty_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: SetDeviceWarrantyParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -338,7 +329,9 @@ pub fn set_device_warranty_handler() -> ToolHandler {
             let warranty = datto_api::Warranty {
                 warranty_date: Some(params.warranty_date.clone()),
             };
-            client.set_device_warranty(&params.device_uid, &warranty).await
+            client
+                .set_device_warranty_with_mcp(&params.device_uid, &warranty, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to set device warranty: {}", e)))?;
 
             let result_data = serde_json::json!({
@@ -371,7 +364,7 @@ pub fn create_quick_job_tool() -> Tool {
 }
 
 pub fn create_quick_job_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: CreateQuickJobParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -381,7 +374,9 @@ pub fn create_quick_job_handler() -> ToolHandler {
                 job_name: params.job_name.clone(),
                 job_component: Box::new(job_component),
             };
-            let response = client.create_quick_job(&params.device_uid, &request).await
+            let response = client
+                .create_quick_job_with_mcp(&params.device_uid, &request, &mcp_headers)
+                .await
                 .map_err(|e| crate::Error::Api(format!("Failed to create quick job: {}", e)))?;
 
             let data = serde_json::to_value(&response)
@@ -394,4 +389,79 @@ pub fn create_quick_job_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn device_uid_params_required() {
+        let p: DeviceUidParams =
+            serde_json::from_value(serde_json::json!({"device_uid": "abc-123"})).unwrap();
+        assert_eq!(p.device_uid, "abc-123");
+    }
+
+    #[test]
+    fn device_uid_params_missing_fails() {
+        let result: Result<DeviceUidParams, _> =
+            serde_json::from_value(serde_json::json!({}));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn device_list_params_page_max_optional() {
+        let p: DeviceListParams =
+            serde_json::from_value(serde_json::json!({"device_uid": "uid-1"})).unwrap();
+        assert_eq!(p.device_uid, "uid-1");
+        assert!(p.page.is_none());
+        assert!(p.max.is_none());
+    }
+
+    #[test]
+    fn device_list_params_with_pagination() {
+        let p: DeviceListParams =
+            serde_json::from_value(serde_json::json!({"device_uid": "uid-1", "page": 3, "max": 50}))
+                .unwrap();
+        assert_eq!(p.page, Some(3));
+        assert_eq!(p.max, Some(50));
+    }
+
+    #[test]
+    fn move_device_params_both_required() {
+        let p: MoveDeviceParams = serde_json::from_value(serde_json::json!({
+            "device_uid": "dev-1",
+            "target_site_uid": "site-2"
+        }))
+        .unwrap();
+        assert_eq!(p.device_uid, "dev-1");
+        assert_eq!(p.target_site_uid, "site-2");
+    }
+
+    #[test]
+    fn set_device_warranty_params_required() {
+        let p: SetDeviceWarrantyParams = serde_json::from_value(serde_json::json!({
+            "device_uid": "dev-1",
+            "warranty_date": "2026-12-31"
+        }))
+        .unwrap();
+        assert_eq!(p.warranty_date, "2026-12-31");
+    }
+
+    #[test]
+    fn device_id_params_integer() {
+        let p: DeviceIdParams =
+            serde_json::from_value(serde_json::json!({"device_id": 42})).unwrap();
+        assert_eq!(p.device_id, 42);
+    }
+
+    #[test]
+    fn create_quick_job_params_required() {
+        let p: CreateQuickJobParams = serde_json::from_value(serde_json::json!({
+            "device_uid": "dev-1",
+            "job_name": "disk-cleanup"
+        }))
+        .unwrap();
+        assert_eq!(p.job_name, "disk-cleanup");
+    }
 }

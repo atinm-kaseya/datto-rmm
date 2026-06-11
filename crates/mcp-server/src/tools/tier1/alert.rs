@@ -1,5 +1,5 @@
 use crate::{tools::ToolHandler, utils::tool_helpers};
-use datto_api::{DattoClient, Priority};
+use datto_api::{DattoClient, McpCallHeaders, Priority};
 use rmcp::model::Tool;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -48,25 +48,25 @@ pub fn get_alert_summary_tool() -> Tool {
 }
 
 pub fn get_alert_summary_handler() -> ToolHandler {
-    Box::new(|client: Arc<DattoClient>, args: Value| {
+    Box::new(|client: Arc<DattoClient>, args: Value, mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: GetAlertSummaryParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
 
             // Fetch alerts (site-specific or account-wide)
             let alerts_data = if let Some(site_filter) = &params.site {
-                // Resolve site UID if needed
+                // Resolve site UID if needed (resolver uses base client, no MCP headers)
                 let site_uid = crate::utils::resolver::resolve_site(&client, site_filter).await?;
-                
-                client.list_site_open_alerts(&site_uid, Some(datto_api::PaginationQuery {
+
+                client.list_site_open_alerts_with_mcp(&site_uid, Some(datto_api::PaginationQuery {
                     page: None,
                     max: None,
-                })).await
+                }), &mcp_headers).await
             } else {
-                client.list_open_alerts(Some(datto_api::PaginationQuery {
+                client.list_open_alerts_with_mcp(Some(datto_api::PaginationQuery {
                     page: None,
                     max: None,
-                })).await
+                }), &mcp_headers).await
             }.map_err(|e| crate::Error::Api(format!("Failed to get alerts: {}", e)))?;
 
             let mut alerts = alerts_data.alerts.unwrap_or_default();
@@ -230,7 +230,7 @@ pub fn investigate_alert_tool() -> Tool {
 }
 
 pub fn investigate_alert_handler() -> ToolHandler {
-    Box::new(|_client: Arc<DattoClient>, args: Value| {
+    Box::new(|_client: Arc<DattoClient>, args: Value, _mcp_headers: McpCallHeaders| {
         Box::pin(async move {
             let params: InvestigateAlertParams = serde_json::from_value(args)
                 .map_err(|e| crate::Error::InvalidInput(format!("Invalid parameters: {}", e)))?;
@@ -254,4 +254,39 @@ pub fn investigate_alert_handler() -> ToolHandler {
             ))
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_alert_summary_site_optional() {
+        let p: GetAlertSummaryParams = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert!(p.site.is_none());
+    }
+
+    #[test]
+    fn get_alert_summary_with_site() {
+        let p: GetAlertSummaryParams =
+            serde_json::from_value(serde_json::json!({"site": "site-abc"})).unwrap();
+        assert_eq!(p.site, Some("site-abc".into()));
+    }
+
+    #[test]
+    fn investigate_alert_params_uid_required() {
+        let p: InvestigateAlertParams =
+            serde_json::from_value(serde_json::json!({"alert_uid": "a-1"})).unwrap();
+        assert_eq!(p.alert_uid, "a-1");
+        assert!(p.include_similar.is_none());
+    }
+
+    #[test]
+    fn investigate_alert_params_include_similar() {
+        let p: InvestigateAlertParams = serde_json::from_value(
+            serde_json::json!({"alert_uid": "a-1", "include_similar": false}),
+        )
+        .unwrap();
+        assert_eq!(p.include_similar, Some(false));
+    }
 }
