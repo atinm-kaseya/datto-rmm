@@ -65,24 +65,31 @@ export async function getJobStatus(
     });
     const results = handleResponse<T.JobResults>(resultsResponse);
 
+    const status = results.jobDeploymentStatus;
     let stdoutData: T.JobStdData[] | null = null;
-    if (results.jobDeploymentStatus === 'Success') {
+    let stderrData: T.JobStdData[] | null = null;
+
+    if (status === 'Success' || status === 'Warning') {
       try {
         const stdoutResponse = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stdout', {
-          params: {
-            path: {
-              jobUid: args.jobUid,
-              deviceUid: args.deviceUid,
-            },
-          },
+          params: { path: { jobUid: args.jobUid, deviceUid: args.deviceUid } },
         });
         stdoutData = handleResponse<T.JobStdData[]>(stdoutResponse);
       } catch {
         stdoutData = null;
       }
+    } else if (status === 'Failure' || status === 'Expired' || status === 'Retired') {
+      try {
+        const stderrResponse = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stderr', {
+          params: { path: { jobUid: args.jobUid, deviceUid: args.deviceUid } },
+        });
+        stderrData = handleResponse<T.JobStdData[]>(stderrResponse);
+      } catch {
+        stderrData = null;
+      }
     }
 
-    return successResponse({ data: { ...results, stdout: stdoutData ?? null }, _enhanced: {} });
+    return successResponse({ data: { ...results, stdout: stdoutData, stderr: stderrData }, _enhanced: {} });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }

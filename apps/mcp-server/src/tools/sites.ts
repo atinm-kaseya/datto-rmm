@@ -144,7 +144,7 @@ export async function updateSite(
   client: DattoClient,
   args: {
     siteUid: string;
-    name: string;
+    name?: string;
     description?: string;
     notes?: string;
     onDemand?: boolean;
