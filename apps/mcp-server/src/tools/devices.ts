@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
 import { normalizePagination } from '../utils/pagination.js';
-import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, extractPageMeta, type ToolResult } from '../utils/response.js';
+import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, extractPageMeta, buildEnhanced, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -14,7 +14,7 @@ export async function getDevice(client: DattoClient, args: { deviceUid: string }
       },
     });
     const data = handleResponse<T.Device>(response);
-    return successResponse({ data, _enhanced: {} });
+    return successResponse({ data, _enhanced: buildEnhanced(data) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }
@@ -31,7 +31,7 @@ export async function getDeviceById(client: DattoClient, args: { deviceId: numbe
       },
     });
     const data = handleResponse<T.Device>(response);
-    return successResponse({ data, _enhanced: {} });
+    return successResponse({ data, _enhanced: buildEnhanced(data) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }
@@ -48,7 +48,7 @@ export async function getDeviceByMac(client: DattoClient, args: { macAddress: st
       },
     });
     const data = handleResponse<T.Device[]>(response);
-    return successResponse({ data, count: data.length, _enhanced: {} });
+    return successResponse({ data, count: data.length, _enhanced: buildEnhanced(data) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }
@@ -76,7 +76,7 @@ export async function listDeviceOpenAlerts(
     });
     const page = handleResponse<T.AlertsPage>(response);
     const { count, next_page } = extractPageMeta(page);
-    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: {} });
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: buildEnhanced(page.alerts ?? []) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }
@@ -104,7 +104,7 @@ export async function listDeviceResolvedAlerts(
     });
     const page = handleResponse<T.AlertsPage>(response);
     const { count, next_page } = extractPageMeta(page);
-    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: {} });
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: buildEnhanced(page.alerts ?? []) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }

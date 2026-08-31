@@ -21,6 +21,16 @@ describe('getAlert', () => {
     expect(body.data.priority).toBe('Critical');
   });
 
+  it('populates _enhanced with device and site from alertSourceInfo', async () => {
+    const client = createMockClient();
+    const result = await getAlert(client, { alertUid: 'alert-1' });
+    const body = JSON.parse(result.content[0]!.text);
+    // default mock alert has alertSourceInfo.deviceUid='device-1' deviceName='web-server-01'
+    // and siteUid='site-1' siteName='Acme Corp'
+    expect(body._enhanced.devices?.['device-1']).toBe('web-server-01');
+    expect(body._enhanced.sites?.['site-1']).toBe('Acme Corp');
+  });
+
   it('returns entity_not_found when API returns 404', async () => {
     // Simulate a 404 non-ok response with no error body — handleResponse will
     // throw "HTTP 404" which mapApiError maps to entity_not_found.

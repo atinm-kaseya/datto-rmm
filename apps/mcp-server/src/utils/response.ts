@@ -156,6 +156,49 @@ function formatError(error: unknown): string {
   return String(error);
 }
 
+// ─── _enhanced ID resolution ─────────────────────────────────────────────────
+
+/**
+ * Walk response data and extract uid→name mappings so the AI can resolve IDs
+ * without extra lookup calls. Finds siteUid/siteName and deviceUid/deviceName
+ * pairs (and uid/hostname on Device objects) anywhere in the response tree.
+ */
+export function buildEnhanced(data: unknown): Record<string, unknown> {
+  const sites: Record<string, string> = {};
+  const devices: Record<string, string> = {};
+
+  function walk(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    const o = node as Record<string, unknown>;
+
+    if (typeof o['siteUid'] === 'string' && typeof o['siteName'] === 'string') {
+      sites[o['siteUid']] = o['siteName'];
+    }
+    if (typeof o['deviceUid'] === 'string' && typeof o['deviceName'] === 'string') {
+      devices[o['deviceUid']] = o['deviceName'];
+    }
+    // Device objects use uid + hostname instead of deviceUid + deviceName
+    if (typeof o['uid'] === 'string' && typeof o['hostname'] === 'string') {
+      devices[o['uid']] = o['hostname'];
+    }
+
+    for (const val of Object.values(o)) {
+      if (val && typeof val === 'object') walk(val);
+    }
+  }
+
+  walk(data);
+
+  const result: Record<string, unknown> = {};
+  if (Object.keys(sites).length > 0) result['sites'] = sites;
+  if (Object.keys(devices).length > 0) result['devices'] = devices;
+  return result;
+}
+
 // ─── Pagination helper (used by tool handlers) ────────────────────────────────
 
 export interface PageMeta {

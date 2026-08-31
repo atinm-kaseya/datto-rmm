@@ -123,6 +123,17 @@ describe('listDevices', () => {
     expect(Array.isArray(body.data)).toBe(true);
   });
 
+  it('populates _enhanced with site and device maps', async () => {
+    const client = createMockClient();
+    const result = await listDevices(client, {});
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body._enhanced.devices).toBeDefined();
+    expect(body._enhanced.sites).toBeDefined();
+    // default mock devices have uid='device-1' hostname='web-server-01' siteUid='site-1' siteName='Acme Corp'
+    expect(body._enhanced.devices['device-1']).toBe('web-server-01');
+    expect(body._enhanced.sites['site-1']).toBe('Acme Corp');
+  });
+
   it('returns error envelope on API failure', async () => {
     const result = await listDevices(makeErrorClient(), {});
 

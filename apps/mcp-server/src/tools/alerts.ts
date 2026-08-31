@@ -1,5 +1,5 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, type ToolResult } from '../utils/response.js';
+import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, buildEnhanced, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -13,7 +13,7 @@ export async function getAlert(client: DattoClient, args: { alertUid: string }):
       },
     });
     const data = handleResponse<T.Alert>(response);
-    return successResponse({ data, _enhanced: {} });
+    return successResponse({ data, _enhanced: buildEnhanced(data) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }

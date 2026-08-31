@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
 import { normalizePagination } from '../utils/pagination.js';
-import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, extractPageMeta, type ToolResult } from '../utils/response.js';
+import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, extractPageMeta, buildEnhanced, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -42,7 +42,7 @@ export async function listSiteDevices(
     });
     const page = handleResponse<T.DevicesPage>(response);
     const { count, next_page } = extractPageMeta(page);
-    return successResponse({ data: page.devices ?? [], count, next_page, _enhanced: {} });
+    return successResponse({ data: page.devices ?? [], count, next_page, _enhanced: buildEnhanced(page.devices ?? []) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }
@@ -70,7 +70,7 @@ export async function listSiteOpenAlerts(
     });
     const page = handleResponse<T.AlertsPage>(response);
     const { count, next_page } = extractPageMeta(page);
-    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: {} });
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: buildEnhanced(page.alerts ?? []) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }
@@ -98,7 +98,7 @@ export async function listSiteResolvedAlerts(
     });
     const page = handleResponse<T.AlertsPage>(response);
     const { count, next_page } = extractPageMeta(page);
-    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: {} });
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: buildEnhanced(page.alerts ?? []) });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }
