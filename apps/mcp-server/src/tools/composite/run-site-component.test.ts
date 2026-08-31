@@ -1,12 +1,12 @@
 /**
- * Tests for run-site-component composite tool
+ * Tests for rmm_run_site_component composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { createMockClient } from '../../test-utils/mock-client.js';
 import { runSiteComponent } from './run-site-component.js';
 
-describe('run-site-component', () => {
+describe('rmm_run_site_component', () => {
   it('should create execution plan in dry-run mode', async () => {
     const client = createMockClient();
 

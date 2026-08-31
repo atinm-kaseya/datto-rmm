@@ -1,12 +1,12 @@
 /**
- * Tests for bulk-update-site-devices composite tool
+ * Tests for rmm_bulk_update_site_devices composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { createMockClient } from '../../test-utils/mock-client.js';
 import { bulkUpdateSiteDevices } from './bulk-update-site-devices.js';
 
-describe('bulk-update-site-devices', () => {
+describe('rmm_bulk_update_site_devices', () => {
   it('should create update plan in dry-run mode', async () => {
     const client = createMockClient();
 

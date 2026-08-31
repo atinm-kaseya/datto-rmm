@@ -1,12 +1,12 @@
 /**
- * Tests for list-site-devices composite tool
+ * Tests for rmm_list_site_devices composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { createMockClient } from '../../test-utils/mock-client.js';
 import { listSiteDevices } from './list-site-devices.js';
 
-describe('list-site-devices', () => {
+describe('rmm_list_site_devices', () => {
   it('should list all devices in a site', async () => {
     const client = createMockClient();
     const result = await listSiteDevices(client, { site: 'Acme Corp' });

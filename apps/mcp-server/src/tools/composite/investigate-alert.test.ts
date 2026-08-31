@@ -1,12 +1,12 @@
 /**
- * Tests for investigate-alert composite tool
+ * Tests for rmm_investigate_alert composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { investigateAlert } from './investigate-alert.js';
 import { createMockClient } from '../../test-utils/mock-client.js';
 
-describe('investigate-alert', () => {
+describe('rmm_investigate_alert', () => {
   it('should provide comprehensive alert investigation', async () => {
     const client = createMockClient({
       alert: {

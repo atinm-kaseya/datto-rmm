@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::sync::Arc;
 
 // ============================================================================
-// get-device-health
+// rmm_get_device_health
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -29,7 +29,7 @@ fn default_include_history() -> bool {
 
 pub fn get_device_health_tool() -> Tool {
     tool_helpers::create_tool::<GetDeviceHealthParams>(
-        "get-device-health",
+        "rmm_get_device_health",
         "🌟 Tier 1: Complete device health snapshot with site context. Shows device overview, \
          system info, hardware details, open alerts, and AI-friendly recommendations. \
          Optionally includes recent job/alert history.",
@@ -221,7 +221,7 @@ pub fn get_device_health_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// diagnose-device-issue 
+// rmm_diagnose_device_issue 
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -239,7 +239,7 @@ pub struct DiagnoseDeviceIssueParams {
 
 pub fn diagnose_device_issue_tool() -> Tool {
     tool_helpers::create_tool::<DiagnoseDeviceIssueParams>(
-        "diagnose-device-issue",
+        "rmm_diagnose_device_issue",
         "🌟 [Tier 1] AI-assisted device troubleshooting. Analyzes device state and provides actionable diagnosis.",
     )
 }

@@ -208,18 +208,18 @@ export async function findSitesWithIssues(
     lines.push('');
     
     if (topIssues.length > 0 && topIssues[0]) {
-      lines.push(`1. **Investigate top site**: \`get-site-health\` on **${topIssues[0].name}**`);
+      lines.push(`1. **Investigate top site**: \`rmm_get_site_health\` on **${topIssues[0].name}**`);
       lines.push(`   \`\`\`json`);
       lines.push(`   { "site": "${topIssues[0].uid}" }`);
       lines.push(`   \`\`\``);
       lines.push('');
 
       if (topIssues.length > 1) {
-        lines.push(`2. **Compare sites**: Use \`get-site-health\` on other problem sites`);
+        lines.push(`2. **Compare sites**: Use \`rmm_get_site_health\` on other problem sites`);
         lines.push('');
       }
 
-      lines.push(`3. **Alert patterns**: Use \`get-alert-summary\` for trending analysis`);
+      lines.push(`3. **Alert patterns**: Use \`rmm_get_alert_summary\` for trending analysis`);
       lines.push('');
     }
 

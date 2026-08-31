@@ -11,7 +11,7 @@ pub fn format_sites_with_issues_placeholder() -> String {
         🔴 8 critical alerts\n\
         📵 2 offline devices\n\
         Common: Backup Failed (5), Offline (2)\n\n\
-     💡 **Next:** Run get-site-health({ site: \"Acme Corp\" }) for details"
+     💡 **Next:** Run rmm_get_site_health({ site: \"Acme Corp\" }) for details"
         .to_string()
 }
 

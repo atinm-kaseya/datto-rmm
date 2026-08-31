@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::sync::Arc;
 
 // ============================================================================
-// get-account-dashboard
+// rmm_get_account_dashboard
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -24,7 +24,7 @@ fn default_time_range() -> String {
 
 pub fn get_account_dashboard_tool() -> Tool {
     tool_helpers::create_tool::<GetAccountDashboardParams>(
-        "get-account-dashboard",
+        "rmm_get_account_dashboard",
         "🌟 Tier 1: High-level account overview. Shows total sites/devices, critical sites \
          with most alerts/offline devices, alert summary, and recommended actions. \
          Use this as your first tool of the day for triage.",
@@ -157,7 +157,7 @@ pub fn get_account_dashboard_handler() -> ToolHandler {
             if sites.is_empty() {
                 lines.push(String::new());
                 lines.push("_⚠️  Note: API returned 0 sites. This may indicate an API pagination issue or account configuration problem._".to_string());
-                lines.push("_Try: `list-sites` to verify site data is accessible._".to_string());
+                lines.push("_Try: `rmm_list_sites` to verify site data is accessible._".to_string());
             }
             
             lines.push(format!(
@@ -227,23 +227,23 @@ pub fn get_account_dashboard_handler() -> ToolHandler {
             lines.push(String::new());
 
             if let Some(top_site) = top_sites.first() {
-                lines.push(format!("1. **Investigate top site**: Use `get-site-health` on **{}**", top_site.name));
+                lines.push(format!("1. **Investigate top site**: Use `rmm_get_site_health` on **{}**", top_site.name));
                 lines.push("   ```json".to_string());
                 lines.push(format!("   {{ \"site\": \"{}\" }}", top_site.uid));
                 lines.push("   ```".to_string());
                 lines.push(String::new());
 
                 if top_sites.len() > 1 {
-                    lines.push("2. **Review other problem sites**: Use `find-sites-with-issues` for full list".to_string());
+                    lines.push("2. **Review other problem sites**: Use `rmm_find_sites_with_issues` for full list".to_string());
                     lines.push(String::new());
                 }
 
                 if critical_count > 5 {
-                    lines.push("3. **Alert trending**: Use `get-alert-summary` to identify patterns".to_string());
+                    lines.push("3. **Alert trending**: Use `rmm_get_alert_summary` to identify patterns".to_string());
                     lines.push(String::new());
                 }
             } else {
-                lines.push("- Check for maintenance tasks with `get-account-analytics`".to_string());
+                lines.push("- Check for maintenance tasks with `rmm_get_account_analytics`".to_string());
                 lines.push("- Review resolved alerts for trends".to_string());
                 lines.push(String::new());
             }
@@ -274,7 +274,7 @@ pub fn get_account_dashboard_handler() -> ToolHandler {
 
             Ok(tool_helpers::instructed_result(
                 dashboard_data,
-                "Present this account dashboard data as a comprehensive overview for daily triage. Start with the account name as the heading. Display account-wide metrics prominently - consider using a pie chart or donut chart for device status (online vs offline breakdown), show total sites count. For alert summary, use visual indicators: pie chart showing critical vs warnings distribution, or progress bars with color coding (red for critical, yellow for warnings). Identify the top 5 sites needing attention based on issue scores - present as a ranked list or table with issue scores visualized (could use horizontal bar chart or severity indicators). For each problem site, show critical alerts, warnings, offline devices, and total devices with icons and counts. Consider progress bars for device health percentages. If no issues detected, show a prominent 'All Clear' message with success indicator. End with recommended next actions as actionable buttons or links - suggest using get-site-health on the top problem site, or maintenance tasks if all is well. Make this dashboard visually rich and scannable at a glance.",
+                "Present this account dashboard data as a comprehensive overview for daily triage. Start with the account name as the heading. Display account-wide metrics prominently - consider using a pie chart or donut chart for device status (online vs offline breakdown), show total sites count. For alert summary, use visual indicators: pie chart showing critical vs warnings distribution, or progress bars with color coding (red for critical, yellow for warnings). Identify the top 5 sites needing attention based on issue scores - present as a ranked list or table with issue scores visualized (could use horizontal bar chart or severity indicators). For each problem site, show critical alerts, warnings, offline devices, and total devices with icons and counts. Consider progress bars for device health percentages. If no issues detected, show a prominent 'All Clear' message with success indicator. End with recommended next actions as actionable buttons or links - suggest using rmm_get_site_health on the top problem site, or maintenance tasks if all is well. Make this dashboard visually rich and scannable at a glance.",
                 Some(vec!["dashboard_layout", "pie_charts", "progress_bars", "severity_icons", "priority_ranking", "bar_charts", "health_visualizations", "actionable_recommendations", "metrics_summary", "visual_hierarchy"])
             ))
         })
@@ -282,7 +282,7 @@ pub fn get_account_dashboard_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// find-sites-with-issues
+// rmm_find_sites_with_issues
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -319,7 +319,7 @@ fn default_limit() -> u32 {
 
 pub fn find_sites_with_issues_tool() -> Tool {
     tool_helpers::create_tool::<FindSitesWithIssuesParams>(
-        "find-sites-with-issues",
+        "rmm_find_sites_with_issues",
         "🌟 Tier 1: Find which sites need attention right now. Returns sites ranked by \
          problem severity with breakdown of alerts and offline devices. Use after dashboard \
          to identify specific sites to investigate.",
@@ -454,7 +454,7 @@ pub fn find_sites_with_issues_handler() -> ToolHandler {
                     lines.push(String::new());
                 }
 
-                lines.push("💡 **Next:** Use `get-site-health` to investigate specific sites".to_string());
+                lines.push("💡 **Next:** Use `rmm_get_site_health` to investigate specific sites".to_string());
             }
 
             let result_data = serde_json::json!({
@@ -479,7 +479,7 @@ pub fn find_sites_with_issues_handler() -> ToolHandler {
 
             Ok(tool_helpers::instructed_result(
                 result_data,
-                "Present this list of sites with issues in priority order. If no sites found, show a positive 'All Clear' message. For each problem site, display name prominently with UID for reference, then list critical alerts (red icon), warnings (yellow icon), and offline devices (offline icon). Show total devices for context. Sort by the ranking provided based on issue scores. End with a suggestion to use get-site-health for detailed investigation of specific sites. Make critical issues immediately visible.",
+                "Present this list of sites with issues in priority order. If no sites found, show a positive 'All Clear' message. For each problem site, display name prominently with UID for reference, then list critical alerts (red icon), warnings (yellow icon), and offline devices (offline icon). Show total devices for context. Sort by the ranking provided based on issue scores. End with a suggestion to use rmm_get_site_health for detailed investigation of specific sites. Make critical issues immediately visible.",
                 Some(vec!["priority_ranking", "severity_icons", "issue_breakdown", "actionable_next_steps"])
             ))
         })
@@ -487,7 +487,7 @@ pub fn find_sites_with_issues_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// search-devices
+// rmm_search_devices
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -517,7 +517,7 @@ fn default_search_limit() -> u32 {
 
 pub fn search_devices_tool() -> Tool {
     tool_helpers::create_tool::<SearchDevicesParams>(
-        "search-devices",
+        "rmm_search_devices",
         "🌟 Tier 1: Search across all sites when you don't know which site contains a device. \
          Searches hostname, IP, site name, and OS. Returns devices with site context and alert counts.",
     )
@@ -621,7 +621,7 @@ pub fn search_devices_handler() -> ToolHandler {
                     lines.push(String::new());
                 }
 
-                lines.push("💡 **Next:** Use `get-site-health` or `get-device-health` for detailed information".to_string());
+                lines.push("💡 **Next:** Use `rmm_get_site_health` or `rmm_get_device_health` for detailed information".to_string());
             }
 
             let result_data = serde_json::json!({
@@ -644,7 +644,7 @@ pub fn search_devices_handler() -> ToolHandler {
 
             Ok(tool_helpers::instructed_result(
                 result_data,
-                "Present these device search results clearly. Show the search query prominently. If no devices found, display a helpful 'no results' message with search tips (try partial hostname, search by site, check status filter). For each matching device, show online/offline status with icon, hostname prominently, site name in context, device type, OS, and UIDs for reference. End with suggestion to use get-site-health or get-device-health for deeper investigation. Make it easy to quickly scan the results.",
+                "Present these device search results clearly. Show the search query prominently. If no devices found, display a helpful 'no results' message with search tips (try partial hostname, search by site, check status filter). For each matching device, show online/offline status with icon, hostname prominently, site name in context, device type, OS, and UIDs for reference. End with suggestion to use rmm_get_site_health or rmm_get_device_health for deeper investigation. Make it easy to quickly scan the results.",
                 Some(vec!["search_results_layout", "status_icons", "no_results_help", "device_details"])
             ))
         })
@@ -652,7 +652,7 @@ pub fn search_devices_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// get-account-analytics
+// rmm_get_account_analytics
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -668,7 +668,7 @@ fn default_analytics_time_range() -> String {
 
 pub fn get_account_analytics_tool() -> Tool {
     tool_helpers::create_tool::<GetAccountAnalyticsParams>(
-        "get-account-analytics",
+        "rmm_get_account_analytics",
         "🌟 [Tier 1] Account-wide usage metrics and trends for capacity planning.",
     )
 }

@@ -28,7 +28,7 @@ mod tests {
 
     fn sample_context() -> ToolContext {
         ToolContext {
-            tool_name: "get-device-health".into(),
+            tool_name: "rmm_get_device_health".into(),
             tool_version: "1.2.3".into(),
             correlation_id: "corr-456".into(),
         }
@@ -40,7 +40,7 @@ mod tests {
 
         assert_eq!(headers.agent_id, "agent-xyz");
         assert_eq!(headers.correlation_id, "corr-456");
-        assert_eq!(headers.tool_name, "get-device-health");
+        assert_eq!(headers.tool_name, "rmm_get_device_health");
         assert_eq!(headers.tool_version, "1.2.3");
         assert_eq!(headers.call_origin, "mcp");
     }

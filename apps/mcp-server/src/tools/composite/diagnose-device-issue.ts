@@ -78,7 +78,7 @@ export async function diagnoseDeviceIssue(
 
     if (!deviceUid || !resolvedDevice) {
       return errorResult(
-        `Device not found: "${device}"${site ? ` at site "${site}"` : ''}. Try using search-devices first.`
+        `Device not found: "${device}"${site ? ` at site "${site}"` : ''}. Try using rmm_search_devices first.`
       );
     }
 
@@ -230,8 +230,8 @@ function buildDiagnosticReport(data: {
   // Next Steps
   lines.push('## 💡 Next Steps');
   lines.push('');
-  lines.push(`- Use \`investigate-alert\` on critical alerts for deeper analysis`);
-  lines.push(`- Use \`get-site-health\` to check if issue affects other devices`);
+  lines.push(`- Use \`rmm_investigate_alert\` on critical alerts for deeper analysis`);
+  lines.push(`- Use \`rmm_get_site_health\` to check if issue affects other devices`);
   lines.push(`- Consider running relevant components from recommendations above`);
   lines.push('');
 
@@ -334,7 +334,7 @@ function generateActionPlan(
 
   if (!device.online) {
     actions.push('Check network connectivity and verify device is powered on');
-    actions.push('Use `get-site-health` to see if other devices at the site are affected');
+    actions.push('Use `rmm_get_site_health` to see if other devices at the site are affected');
     actions.push('Restart Datto RMM agent if device is accessible via other means');
     return actions;
   }
@@ -378,11 +378,11 @@ function generateActionPlan(
   if (actions.length === 0) {
     actions.push('Review all open alerts for clues');
     actions.push('Check recent job history for failures');
-    actions.push('Use `investigate-alert` on any critical alerts');
+    actions.push('Use `rmm_investigate_alert` on any critical alerts');
   }
 
   // Always suggest monitoring
-  actions.push('**Monitor:** Use `get-device-health` to track progress after taking actions');
+  actions.push('**Monitor:** Use `rmm_get_device_health` to track progress after taking actions');
 
   return actions;
 }

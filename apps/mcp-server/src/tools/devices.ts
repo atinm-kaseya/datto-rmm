@@ -118,7 +118,7 @@ export async function getDeviceByMac(client: DattoClient, args: { macAddress: st
     for (const device of data) {
       const status = device.online ? 'Online' : 'Offline';
       lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **Device UID:** \`${device.uid}\` _(use with get-device)_`);
+      lines.push(`- **Device UID:** \`${device.uid}\` _(use with rmm_get_device)_`);
       lines.push(`- **Status:** ${status}`);
       lines.push(`- **Site:** ${device.siteName ?? 'N/A'}`);
       lines.push(`- **OS:** ${device.operatingSystem ?? 'N/A'}`);
@@ -165,7 +165,7 @@ export async function listDeviceOpenAlerts(
 
     for (const alert of data.alerts) {
       lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with get-alert or resolve-alert)_`);
+      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with rmm_get_alert or rmm_resolve_alert)_`);
       lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
       lines.push(`- **Created:** ${alert.timestamp ?? 'N/A'}`);
       if (alert.diagnostics) {
@@ -213,7 +213,7 @@ export async function listDeviceResolvedAlerts(
 
     for (const alert of data.alerts) {
       lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with get-alert)_`);
+      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with rmm_get_alert)_`);
       lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
       lines.push(`- **Resolved:** ${alert.resolvedOn ?? 'N/A'}`);
       lines.push('');

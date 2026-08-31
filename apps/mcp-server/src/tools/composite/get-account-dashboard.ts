@@ -163,23 +163,23 @@ export async function getAccountDashboard(
     lines.push('');
     
     if (topSites.length > 0 && topSites[0]) {
-      lines.push(`1. **Investigate top site**: Use \`get-site-health\` on **${topSites[0].name}**`);
+      lines.push(`1. **Investigate top site**: Use \`rmm_get_site_health\` on **${topSites[0].name}**`);
       lines.push(`   \`\`\`json`);
       lines.push(`   { "site": "${topSites[0].uid}" }`);
       lines.push(`   \`\`\``);
       lines.push('');
       
       if (topSites.length > 1) {
-        lines.push(`2. **Review other problem sites**: Use \`find-sites-with-issues\` for full list`);
+        lines.push(`2. **Review other problem sites**: Use \`rmm_find_sites_with_issues\` for full list`);
         lines.push('');
       }
       
       if (criticalCount > 5) {
-        lines.push(`3. **Alert trending**: Use \`get-alert-summary\` to identify patterns`);
+        lines.push(`3. **Alert trending**: Use \`rmm_get_alert_summary\` to identify patterns`);
         lines.push('');
       }
     } else {
-      lines.push('- Check for maintenance tasks with \`get-account-analytics\`');
+      lines.push('- Check for maintenance tasks with \`rmm_get_account_analytics\`');
       lines.push('- Review resolved alerts for trends');
       lines.push('');
     }

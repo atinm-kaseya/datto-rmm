@@ -309,9 +309,9 @@ export async function getAccountAnalytics(
 
     lines.push('');
     lines.push('**Suggested Actions:**');
-    lines.push('- Use `find-sites-with-issues` to prioritize problem sites');
-    lines.push('- Run `get-alert-summary` for detailed alert analysis');
-    lines.push('- Check offline devices with `search-devices({ status: "offline" })`');
+    lines.push('- Use `rmm_find_sites_with_issues` to prioritize problem sites');
+    lines.push('- Run `rmm_get_alert_summary` for detailed alert analysis');
+    lines.push('- Check offline devices with `rmm_search_devices({ status: "offline" })`');
 
     return {
       content: [{ type: 'text', text: lines.join('\n') }],

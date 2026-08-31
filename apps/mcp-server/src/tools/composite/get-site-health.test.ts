@@ -1,12 +1,12 @@
 /**
- * Tests for get-site-health composite tool
+ * Tests for rmm_get_site_health composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { getSiteHealth } from './get-site-health.js';
 import { createMockClient } from '../../test-utils/mock-client.js';
 
-describe('get-site-health', () => {
+describe('rmm_get_site_health', () => {
   it('should return comprehensive site health', async () => {
     const client = createMockClient();
     const result = await getSiteHealth(client, { site: 'Acme Corp' });
@@ -147,6 +147,6 @@ describe('get-site-health', () => {
     
     expect(text).toContain('💡 Recommended Actions');
     // Should suggest checking offline devices or investigating top device
-    expect(text).toMatch(/list-site-devices|get-device-health/);
+    expect(text).toMatch(/rmm_list_site_devices|rmm_get_device_health/);
   });
 });

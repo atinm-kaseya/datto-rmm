@@ -15,7 +15,7 @@ pub struct DeviceUidParams {
 
 pub fn get_device_tool() -> Tool {
     tool_helpers::create_tool::<DeviceUidParams>(
-        "get-device",
+        "rmm_get_device",
         "🔧 [Advanced] Get device info. Returns formatted markdown with device details.",
     )
 }
@@ -54,7 +54,7 @@ pub struct DeviceListParams {
 
 pub fn list_device_open_alerts_tool() -> Tool {
     tool_helpers::create_tool::<DeviceListParams>(
-        "list-device-open-alerts",
+        "rmm_list_device_open_alerts",
         "🔧 [Advanced] List device open alerts. Returns formatted markdown with alert details.",
     )
 }
@@ -106,7 +106,7 @@ pub fn list_device_open_alerts_handler() -> ToolHandler {
 
 pub fn list_device_resolved_alerts_tool() -> Tool {
     tool_helpers::create_tool::<DeviceListParams>(
-        "list-device-resolved-alerts",
+        "rmm_list_device_resolved_alerts",
         "🔧 [Advanced] List device resolved alerts. Returns formatted markdown with alert history.",
     )
 }
@@ -163,7 +163,7 @@ pub struct DeviceIdParams {
 
 pub fn get_device_by_id_tool() -> Tool {
     tool_helpers::create_tool::<DeviceIdParams>(
-        "get-device-by-id",
+        "rmm_get_device_by_id",
         "🔧 [Advanced] Lookup device by ID. Returns formatted markdown with device details.",
     )
 }
@@ -198,7 +198,7 @@ pub struct MacAddressParams {
 
 pub fn get_device_by_mac_tool() -> Tool {
     tool_helpers::create_tool::<MacAddressParams>(
-        "get-device-by-mac",
+        "rmm_get_device_by_mac",
         "🔧 [Advanced] Lookup device by MAC address. Returns formatted markdown with device details.",
     )
 }
@@ -234,7 +234,7 @@ pub struct MoveDeviceParams {
 
 pub fn move_device_tool() -> Tool {
     tool_helpers::create_tool::<MoveDeviceParams>(
-        "move-device",
+        "rmm_move_device",
         "🔧 [Advanced] Move device to another site",
     )
 }
@@ -274,7 +274,7 @@ pub struct SetDeviceUdfParams {
 
 pub fn set_device_udf_tool() -> Tool {
     tool_helpers::create_tool::<SetDeviceUdfParams>(
-        "set-device-udf",
+        "rmm_set_device_udf",
         "🔧 [Advanced] Set device user-defined fields",
     )
 }
@@ -315,7 +315,7 @@ pub struct SetDeviceWarrantyParams {
 
 pub fn set_device_warranty_tool() -> Tool {
     tool_helpers::create_tool::<SetDeviceWarrantyParams>(
-        "set-device-warranty",
+        "rmm_set_device_warranty",
         "🔧 [Advanced] Set device warranty date",
     )
 }
@@ -358,7 +358,7 @@ pub struct CreateQuickJobParams {
 
 pub fn create_quick_job_tool() -> Tool {
     tool_helpers::create_tool::<CreateQuickJobParams>(
-        "create-quick-job",
+        "rmm_create_quick_job",
         "🔧 [Advanced] Create and execute a quick job on a device. Returns formatted confirmation.",
     )
 }

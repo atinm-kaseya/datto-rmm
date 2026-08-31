@@ -230,7 +230,7 @@ export async function listSiteDevices(
     if (offlineDevices.length > 0) {
       const firstOffline = offlineDevices[0];
       lines.push(
-        `- Investigate offline devices: \`get-device-health({ device: "${firstOffline?.hostname}", site: "${site}" })\``
+        `- Investigate offline devices: \`rmm_get_device_health({ device: "${firstOffline?.hostname}", site: "${site}" })\``
       );
     }
 
@@ -241,12 +241,12 @@ export async function listSiteDevices(
         return currCount > prevCount ? curr : prev;
       });
       lines.push(
-        `- Check device with most alerts: \`get-device-health({ device: "${topDevice.hostname}", site: "${site}" })\``
+        `- Check device with most alerts: \`rmm_get_device_health({ device: "${topDevice.hostname}", site: "${site}" })\``
       );
     }
 
     if (devices.length > 10) {
-      lines.push(`- Review alert overview: \`get-site-alerts({ site: "${site}" })\``);
+      lines.push(`- Review alert overview: \`rmm_get_site_alerts({ site: "${site}" })\``);
     }
 
     return {

@@ -18,7 +18,7 @@ pub struct PaginationParams {
 
 pub fn get_activity_logs_tool() -> Tool {
     tool_helpers::create_tool::<PaginationParams>(
-        "get-activity-logs",
+        "rmm_get_activity_logs",
         "🔧 [Advanced] Get account activity logs. Returns formatted markdown with activity timeline.",
     )
 }

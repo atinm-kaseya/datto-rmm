@@ -247,7 +247,7 @@ export async function getSiteHealth(
     lines.push('');
 
     if (offlineDevices > 0) {
-      lines.push(`1. **Check offline devices**: Use \`list-site-devices\` with status filter`);
+      lines.push(`1. **Check offline devices**: Use \`rmm_list_site_devices\` with status filter`);
       lines.push(`   \`\`\`json`);
       lines.push(`   { "site_uid": "${siteUid}", "status": "offline" }`);
       lines.push(`   \`\`\``);
@@ -255,7 +255,7 @@ export async function getSiteHealth(
     }
 
     if (topDevicesWithAlerts.length > 0 && topDevicesWithAlerts[0]) {
-      lines.push(`${offlineDevices > 0 ? '2' : '1'}. **Investigate top device**: \`get-device-health\` on **${topDevicesWithAlerts[0].name}**`);
+      lines.push(`${offlineDevices > 0 ? '2' : '1'}. **Investigate top device**: \`rmm_get_device_health\` on **${topDevicesWithAlerts[0].name}**`);
       lines.push(`   \`\`\`json`);
       lines.push(`   { "device": "${topDevicesWithAlerts[0].uid}", "site": "${siteUid}" }`);
       lines.push(`   \`\`\``);
@@ -263,7 +263,7 @@ export async function getSiteHealth(
     }
 
     if (criticalAlerts > 5) {
-      lines.push(`${offlineDevices > 0 || topDevicesWithAlerts.length > 0 ? '3' : '1'}. **Alert analysis**: Use \`get-site-alerts\` for grouped view`);
+      lines.push(`${offlineDevices > 0 || topDevicesWithAlerts.length > 0 ? '3' : '1'}. **Alert analysis**: Use \`rmm_get_site_alerts\` for grouped view`);
       lines.push(`   \`\`\`json`);
       lines.push(`   { "site": "${siteUid}", "group_by": "type" }`);
       lines.push(`   \`\`\``);

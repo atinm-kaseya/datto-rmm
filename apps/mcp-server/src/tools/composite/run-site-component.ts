@@ -242,10 +242,10 @@ export async function runSiteComponent(
     lines.push('## 💡 Next Steps');
     lines.push('');
     lines.push(
-      `- Check job status: Use Tier 2 \`get-job-status\` with job UIDs`
+      `- Check job status: Use Tier 2 \`rmm_get_job-status\` with job UIDs`
     );
     lines.push(
-      `- Monitor device alerts: \`get-site-alerts({ site: "${site}" })\``
+      `- Monitor device alerts: \`rmm_get_site_alerts({ site: "${site}" })\``
     );
 
     return {

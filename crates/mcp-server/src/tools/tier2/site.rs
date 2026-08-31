@@ -15,7 +15,7 @@ pub struct SiteUidParams {
 
 pub fn get_site_tool() -> Tool {
     tool_helpers::create_tool::<SiteUidParams>(
-        "get-site",
+        "rmm_get_site",
         "🔧 [Advanced] Get site info. Returns formatted markdown with site details.",
     )
 }
@@ -76,7 +76,7 @@ pub struct SiteListParams {
 
 pub fn list_site_devices_tool() -> Tool {
     tool_helpers::create_tool::<SiteListParams>(
-        "get-site-devices",
+        "rmm_get_site_devices",
         "🔧 [Advanced] List site's devices. Returns formatted markdown with device list.",
     )
 }
@@ -139,7 +139,7 @@ pub fn list_site_devices_handler() -> ToolHandler {
 
 pub fn list_site_open_alerts_tool() -> Tool {
     tool_helpers::create_tool::<SiteListParams>(
-        "list-site-open-alerts",
+        "rmm_list_site_open_alerts",
         "🔧 [Advanced] List site alerts. Returns formatted markdown with alert details.",
     )
 }
@@ -204,7 +204,7 @@ pub fn list_site_open_alerts_handler() -> ToolHandler {
 
 pub fn get_site_settings_tool() -> Tool {
     tool_helpers::create_tool::<SiteUidParams>(
-        "get-site-settings",
+        "rmm_get_site_settings",
         "🔧 [Advanced] Get site settings. Returns formatted markdown with configuration details.",
     )
 }
@@ -234,7 +234,7 @@ pub fn get_site_settings_handler() -> ToolHandler {
 
 pub fn list_site_variables_tool() -> Tool {
     tool_helpers::create_tool::<SiteListParams>(
-        "list-site-variables",
+        "rmm_list_site_variables",
         "🔧 [Advanced] List site variables. Returns formatted markdown with variable details.",
     )
 }
@@ -290,7 +290,7 @@ pub fn list_site_variables_handler() -> ToolHandler {
 
 pub fn list_site_resolved_alerts_tool() -> Tool {
     tool_helpers::create_tool::<SiteListParams>(
-        "list-site-resolved-alerts",
+        "rmm_list_site_resolved_alerts",
         "🔧 [Advanced] List resolved alerts. Returns formatted markdown with alert history.",
     )
 }
@@ -363,7 +363,7 @@ pub struct CreateSiteParams {
 
 pub fn create_site_tool() -> Tool {
     tool_helpers::create_tool::<CreateSiteParams>(
-        "create-site",
+        "rmm_create_site",
         "🔧 [Advanced] Create a new site. Returns formatted confirmation.",
     )
 }
@@ -410,7 +410,7 @@ pub struct UpdateSiteParams {
 
 pub fn update_site_tool() -> Tool {
     tool_helpers::create_tool::<UpdateSiteParams>(
-        "update-site",
+        "rmm_update_site",
         "🔧 [Advanced] Update site information. Returns formatted confirmation.",
     )
 }
@@ -454,7 +454,7 @@ pub fn update_site_handler() -> ToolHandler {
 
 pub fn list_site_filters_tool() -> Tool {
     tool_helpers::create_tool::<SiteUidParams>(
-        "list-site-filters",
+        "rmm_list_site_filters",
         "🔧 [Advanced] List site device filters. Returns formatted markdown with filter details.",
     )
 }

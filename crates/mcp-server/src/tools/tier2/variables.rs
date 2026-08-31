@@ -16,7 +16,7 @@ pub struct CreateAccountVariableParams {
 
 pub fn create_account_variable_tool() -> Tool {
     tool_helpers::create_tool::<CreateAccountVariableParams>(
-        "create-account-variable",
+        "rmm_create_account_variable",
         "🔧 [Advanced] Create account-level variable. Returns Variable JSON with: name, value, id. Format as: ✅ Variable '{name}' created with value: {value} (ID: {id}).",
     )
 }
@@ -60,7 +60,7 @@ pub struct UpdateAccountVariableParams {
 
 pub fn update_account_variable_tool() -> Tool {
     tool_helpers::create_tool::<UpdateAccountVariableParams>(
-        "update-account-variable",
+        "rmm_update_account_variable",
         "🔧 [Advanced] Update account-level variable. Returns Variable JSON with: name, value, id. Format as: ✅ Variable '{name}' updated to: {value} (ID: {id}).",
     )
 }
@@ -103,7 +103,7 @@ pub struct DeleteAccountVariableParams {
 
 pub fn delete_account_variable_tool() -> Tool {
     tool_helpers::create_tool::<DeleteAccountVariableParams>(
-        "delete-account-variable",
+        "rmm_delete_account_variable",
         "🔧 [Advanced] Delete account-level variable",
     )
 }
@@ -147,7 +147,7 @@ pub struct CreateSiteVariableParams {
 
 pub fn create_site_variable_tool() -> Tool {
     tool_helpers::create_tool::<CreateSiteVariableParams>(
-        "create-site-variable",
+        "rmm_create_site_variable",
         "🔧 [Advanced] Create site-level variable. Returns Variable JSON with: name, value, id. Format as: ✅ Site variable '{name}' created with value: {value} (ID: {id}).",
     )
 }
@@ -192,7 +192,7 @@ pub struct UpdateSiteVariableParams {
 
 pub fn update_site_variable_tool() -> Tool {
     tool_helpers::create_tool::<UpdateSiteVariableParams>(
-        "update-site-variable",
+        "rmm_update_site_variable",
         "🔧 [Advanced] Update site-level variable. Returns Variable JSON with: name, value, id. Format as: ✅ Site variable '{name}' updated to: {value} (ID: {id}).",
     )
 }
@@ -236,7 +236,7 @@ pub struct DeleteSiteVariableParams {
 
 pub fn delete_site_variable_tool() -> Tool {
     tool_helpers::create_tool::<DeleteSiteVariableParams>(
-        "delete-site-variable",
+        "rmm_delete_site_variable",
         "🔧 [Advanced] Delete site-level variable",
     )
 }
@@ -281,7 +281,7 @@ pub struct UpdateSiteProxyParams {
 
 pub fn update_site_proxy_tool() -> Tool {
     tool_helpers::create_tool::<UpdateSiteProxyParams>(
-        "update-site-proxy",
+        "rmm_update_site_proxy",
         "🔧 [Advanced] Update site proxy settings",
     )
 }
@@ -326,7 +326,7 @@ pub struct DeleteSiteProxyParams {
 
 pub fn delete_site_proxy_tool() -> Tool {
     tool_helpers::create_tool::<DeleteSiteProxyParams>(
-        "delete-site-proxy",
+        "rmm_delete_site_proxy",
         "🔧 [Advanced] Delete site proxy settings",
     )
 }

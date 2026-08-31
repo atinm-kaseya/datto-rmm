@@ -297,7 +297,7 @@ function generateAlertResolutions(
 
   // Generic recommendations
   else {
-    suggestions.push('Use `get-device-health` for comprehensive device snapshot');
+    suggestions.push('Use `rmm_get_device_health` for comprehensive device snapshot');
     suggestions.push('Review recent job history for related failures');
     suggestions.push('Check device audit logs for recent changes');
   }
@@ -306,7 +306,7 @@ function generateAlertResolutions(
   if (similarAlerts.length > 3) {
     suggestions.push('');
     suggestions.push('**Multi-device pattern detected:**');
-    suggestions.push(`Use \`get-alert-summary\` to analyze this alert type account-wide`);
+    suggestions.push(`Use \`rmm_get_alert_summary\` to analyze this alert type account-wide`);
     suggestions.push(`Consider bulk remediation at site level if all at same site`);
   }
 

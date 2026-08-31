@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 pub fn get_system_status_tool() -> Tool {
     tool_helpers::create_tool_no_params(
-        "get-system-status",
+        "rmm_get_system_status",
         "🔧 [Advanced] Get Datto RMM system status. Returns StatusResponse JSON with: version, status string. Format as: **Version**: version number, **Status**: status with ✅ if OK, 🔴 if error. Keep concise.",
     )
 }
@@ -35,7 +35,7 @@ pub fn get_system_status_handler() -> ToolHandler {
 
 pub fn get_rate_limit_tool() -> Tool {
     tool_helpers::create_tool_no_params(
-        "get-rate-limit",
+        "rmm_get_rate_limit",
         "🔧 [Advanced] Get API rate limit info. Returns RateStatusResponse JSON with: limit (requests per period), remaining, resetTime epoch, current usage. Format as: **Limit**: X requests/period, **Remaining**: Y (🟢 if >50%, 🟡 if 20-50%, 🔴 if <20%), **Resets**: time (convert epoch), **Usage**: progress bar or percentage. Warn if near limit.",
     )
 }
@@ -62,7 +62,7 @@ pub fn get_rate_limit_handler() -> ToolHandler {
 
 pub fn get_pagination_config_tool() -> Tool {
     tool_helpers::create_tool_no_params(
-        "get-pagination-config",
+        "rmm_get_pagination_config",
         "🔧 [Advanced] Get pagination configuration. Returns JSON - format as key-value pairs: Default Page Size, Max Page Size, Total Pages (if available), Current Page Settings. Present clearly and concisely.",
     )
 }
@@ -89,7 +89,7 @@ pub fn get_pagination_config_handler() -> ToolHandler {
 
 pub fn list_default_filters_tool() -> Tool {
     tool_helpers::create_tool_no_params(
-        "list-default-filters",
+        "rmm_list_default_filters",
         "🔧 [Advanced] List default device filters. Returns JSON - format as table with columns: Filter Name, UID, Criteria/Conditions, Type (default), Active/Enabled status. Sort by name.",
     )
 }
@@ -116,7 +116,7 @@ pub fn list_default_filters_handler() -> ToolHandler {
 
 pub fn list_custom_filters_tool() -> Tool {
     tool_helpers::create_tool_no_params(
-        "list-custom-filters",
+        "rmm_list_custom_filters",
         "🔧 [Advanced] List custom device filters. Returns JSON - format as table with columns: Filter Name, UID, Criteria/Conditions, Creator/Owner, Active/Enabled status. Sort by name.",
     )
 }

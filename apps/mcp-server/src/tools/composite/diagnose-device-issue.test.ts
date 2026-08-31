@@ -1,12 +1,12 @@
 /**
- * Tests for diagnose-device-issue composite tool
+ * Tests for rmm_diagnose_device_issue composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { diagnoseDeviceIssue } from './diagnose-device-issue.js';
 import { createMockClient } from '../../test-utils/mock-client.js';
 
-describe('diagnose-device-issue', () => {
+describe('rmm_diagnose_device_issue', () => {
   it('should provide diagnostic report with action plan', async () => {
     const client = createMockClient();
     const result = await diagnoseDeviceIssue(client, {

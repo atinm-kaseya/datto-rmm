@@ -1,12 +1,12 @@
 /**
- * Tests for get-device-health composite tool
+ * Tests for rmm_get_device_health composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { getDeviceHealth } from './get-device-health.js';
 import { createMockClient } from '../../test-utils/mock-client.js';
 
-describe('get-device-health', () => {
+describe('rmm_get_device_health', () => {
   it('should return comprehensive device health report', async () => {
     const client = createMockClient();
     const result = await getDeviceHealth(client, { device: 'web-server-01' });

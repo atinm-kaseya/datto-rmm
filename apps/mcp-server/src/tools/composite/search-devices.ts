@@ -329,9 +329,9 @@ function formatSearchResults(
 
     lines.push('## 💡 Next Steps');
     lines.push('');
-    lines.push('- Use `get-device-health` to investigate specific devices');
-    lines.push('- Use `get-site-health` to see full site context');
-    lines.push('- Use `diagnose-device-issue` for troubleshooting');
+    lines.push('- Use `rmm_get_device_health` to investigate specific devices');
+    lines.push('- Use `rmm_get_site_health` to see full site context');
+    lines.push('- Use `rmm_diagnose_device_issue` for troubleshooting');
   }
 
   return lines.join('\n');

@@ -1,12 +1,12 @@
 /**
- * Tests for get-site-alerts composite tool
+ * Tests for rmm_get_site_alerts composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { createMockClient } from '../../test-utils/mock-client.js';
 import { getSiteAlerts } from './get-site-alerts.js';
 
-describe('get-site-alerts', () => {
+describe('rmm_get_site_alerts', () => {
   it('should provide comprehensive site alert overview', async () => {
     const client = createMockClient();
     const result = await getSiteAlerts(client, { site: 'Acme Corp' });

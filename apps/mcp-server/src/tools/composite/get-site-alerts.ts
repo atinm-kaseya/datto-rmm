@@ -268,19 +268,19 @@ export async function getSiteAlerts(
         if (topDevice) {
           const device = deviceMap.get(topDevice[0]);
           lines.push(
-            `- Start with device with most alerts: \`get-device-health({ device: "${device?.hostname ?? topDevice[0]}", site: "${site}" })\``
+            `- Start with device with most alerts: \`rmm_get_device_health({ device: "${device?.hostname ?? topDevice[0]}", site: "${site}" })\``
           );
         }
       }
     }
 
     lines.push(
-      `- Review full site health: \`get-site-health({ site: "${site}" })\``
+      `- Review full site health: \`rmm_get_site_health({ site: "${site}" })\``
     );
 
     if (alerts.length > 20) {
       lines.push(
-        '- Consider bulk operations if many devices affected: `bulk-update-site-devices` or `run-site-component`'
+        '- Consider bulk operations if many devices affected: `rmm_bulk_update_site_devices` or `rmm_run_site_component`'
       );
     }
 

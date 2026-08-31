@@ -44,7 +44,7 @@ export const tools: ToolDefinition[] = [
   
   // Account Overview (Triage & Prioritization)
   {
-    name: 'get-account-dashboard',
+    name: 'rmm_get_account_dashboard',
     description: '🌟 [Tier 1] Get high-level account overview for start-of-day triage. Shows critical sites, alert summary, and recommended actions.',
     inputSchema: {
       type: 'object',
@@ -59,7 +59,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.getAccountDashboard(client, args as Parameters<typeof compositeTools.getAccountDashboard>[1]),
   },
   {
-    name: 'find-sites-with-issues',
+    name: 'rmm_find_sites_with_issues',
     description: '🌟 [Tier 1] Find which sites need attention right now. Returns ranked list of sites with alerts and offline devices.',
     inputSchema: {
       type: 'object',
@@ -87,7 +87,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.findSitesWithIssues(client, args as Parameters<typeof compositeTools.findSitesWithIssues>[1]),
   },
   {
-    name: 'search-devices',
+    name: 'rmm_search_devices',
     description: '🌟 [Tier 1] Search for devices across all sites using natural language. Matches hostname, IP, site name, or OS. Use when you don\'t know which site contains a device.',
     inputSchema: {
       type: 'object',
@@ -114,7 +114,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.searchDevices(client, args as Parameters<typeof compositeTools.searchDevices>[1]),
   },
   {
-    name: 'get-site-health',
+    name: 'rmm_get_site_health',
     description: '🌟 [Tier 1] Get comprehensive site health dashboard. Shows devices, alerts, top problem devices, and recommended actions. Primary entry point for site-focused work.',
     inputSchema: {
       type: 'object',
@@ -133,7 +133,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.getSiteHealth(client, args as any),
   },
   {
-    name: 'get-device-health',
+    name: 'rmm_get_device_health',
     description: '🌟 [Tier 1] Get complete device health snapshot. Shows status, alerts, hardware, recent jobs, and recommendations. Use for device troubleshooting.',
     inputSchema: {
       type: 'object',
@@ -156,7 +156,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.getDeviceHealth(client, args as any),
   },
   {
-    name: 'diagnose-device-issue',
+    name: 'rmm_diagnose_device_issue',
     description: '🌟 [Tier 1] AI-assisted device troubleshooting. Analyzes device state, recent changes, and provides actionable diagnosis with prioritized remediation steps.',
     inputSchema: {
       type: 'object',
@@ -179,7 +179,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.diagnoseDeviceIssue(client, args as any),
   },
   {
-    name: 'investigate-alert',
+    name: 'rmm_investigate_alert',
     description: '🌟 [Tier 1] Deep alert analysis with pattern detection. Finds similar alerts across devices, assesses impact, and provides resolution suggestions.',
     inputSchema: {
       type: 'object',
@@ -198,7 +198,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.investigateAlert(client, args as any),
   },
   {
-    name: 'get-alert-summary',
+    name: 'rmm_get_alert_summary',
     description: '🌟 [Tier 1] Alert trending and analytics. Groups alerts by type/device/site, shows patterns, and identifies most affected areas.',
     inputSchema: {
       type: 'object',
@@ -227,7 +227,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.getAlertSummary(client, args as any),
   },
   {
-    name: 'list-site-devices',
+    name: 'rmm_list_site_devices',
     description: '🌟 [Tier 1] Browse and filter devices within a site. Supports filtering by status, type, and alert presence with multiple sort options.',
     inputSchema: {
       type: 'object',
@@ -260,7 +260,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.listSiteDevices(client, args as any),
   },
   {
-    name: 'get-site-alerts',
+    name: 'rmm_get_site_alerts',
     description: '🌟 [Tier 1] Alert overview for a specific site. Groups alerts by device or type, shows severity breakdown, and provides remediation recommendations.',
     inputSchema: {
       type: 'object',
@@ -285,7 +285,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.getSiteAlerts(client, args as any),
   },
   {
-    name: 'run-site-component',
+    name: 'rmm_run_site_component',
     description: '🌟 [Tier 1] Execute a component (quick job, script) on devices within a site. Site-scoped for safety. Supports dry-run mode to preview before execution.',
     inputSchema: {
       type: 'object',
@@ -323,7 +323,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.runSiteComponent(client, args as any),
   },
   {
-    name: 'bulk-update-site-devices',
+    name: 'rmm_bulk_update_site_devices',
     description: '🌟 [Tier 1] Bulk update device properties (UDFs, warranty, description) across devices in a site. Site-scoped for safety. Supports dry-run mode.',
     inputSchema: {
       type: 'object',
@@ -361,7 +361,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.bulkUpdateSiteDevices(client, args as any),
   },
   {
-    name: 'get-account-analytics',
+    name: 'rmm_get_account_analytics',
     description: '🌟 [Tier 1] Account-wide usage metrics and trends. Shows device growth, site statistics, alert patterns, and capacity planning insights.',
     inputSchema: {
       type: 'object',
@@ -388,7 +388,7 @@ export const tools: ToolDefinition[] = [
   
   // Account Tools
   {
-    name: 'get-account',
+    name: 'rmm_get_account',
     description: '🔧 [Advanced] Get raw account information including device status summary',
     inputSchema: {
       type: 'object',
@@ -397,8 +397,8 @@ export const tools: ToolDefinition[] = [
     handler: (client) => accountTools.getAccount(client),
   },
   {
-    name: 'list-sites',
-    description: '🔧 [Advanced] List all sites (raw API). Use get-site-health for richer site information.',
+    name: 'rmm_list_sites',
+    description: '🔧 [Advanced] List all sites (raw API). Use rmm_get_site_health for richer site information.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -410,8 +410,8 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listSites(client, args as Parameters<typeof accountTools.listSites>[1]),
   },
   {
-    name: 'list-devices',
-    description: '🔧 [Advanced] List all devices (raw API). Use search-devices for natural language search.',
+    name: 'rmm_list_devices',
+    description: '🔧 [Advanced] List all devices (raw API). Use rmm_search_devices for natural language search.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -427,7 +427,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listDevices(client, args as Parameters<typeof accountTools.listDevices>[1]),
   },
   {
-    name: 'list-users',
+    name: 'rmm_list_users',
     description: 'List all users in the Datto RMM account',
     inputSchema: {
       type: 'object',
@@ -439,7 +439,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listUsers(client, args as Parameters<typeof accountTools.listUsers>[1]),
   },
   {
-    name: 'list-account-variables',
+    name: 'rmm_list_account_variables',
     description: 'List all account-level variables',
     inputSchema: {
       type: 'object',
@@ -451,7 +451,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listAccountVariables(client, args as Parameters<typeof accountTools.listAccountVariables>[1]),
   },
   {
-    name: 'list-components',
+    name: 'rmm_list_components',
     description: 'List all available job components in the account',
     inputSchema: {
       type: 'object',
@@ -463,8 +463,8 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listComponents(client, args as Parameters<typeof accountTools.listComponents>[1]),
   },
   {
-    name: 'list-open-alerts',
-    description: '🔧 [Advanced] List all open alerts (raw API). Use get-alert-summary for analytics.',
+    name: 'rmm_list_open_alerts',
+    description: '🔧 [Advanced] List all open alerts (raw API). Use rmm_get_alert_summary for analytics.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -476,7 +476,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listOpenAlerts(client, args as Parameters<typeof accountTools.listOpenAlerts>[1]),
   },
   {
-    name: 'list-resolved-alerts',
+    name: 'rmm_list_resolved_alerts',
     description: 'List resolved alerts across the account',
     inputSchema: {
       type: 'object',
@@ -489,7 +489,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listResolvedAlerts(client, args as Parameters<typeof accountTools.listResolvedAlerts>[1]),
   },
   {
-    name: 'get-api-metering-summary',
+    name: 'rmm_get_api_metering_summary',
     description: 'Get API call metering statistics for this account. Returns total calls, breakdown by origin (mcp vs api), top endpoints, top MCP agents, and error rate. Optionally filter by origin.',
     inputSchema: {
       type: 'object',
@@ -506,8 +506,8 @@ export const tools: ToolDefinition[] = [
 
   // Site Tools
   {
-    name: 'get-site',
-    description: '🔧 [Advanced] Get raw site information. Use get-site-health for comprehensive site overview.',
+    name: 'rmm_get_site',
+    description: '🔧 [Advanced] Get raw site information. Use rmm_get_site_health for comprehensive site overview.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -518,8 +518,8 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.getSite(client, args as Parameters<typeof siteTools.getSite>[1]),
   },
   {
-    name: 'get-site-devices',
-    description: '🔧 [Advanced] Get site devices (raw API). Included in get-site-health.',
+    name: 'rmm_get_site_devices',
+    description: '🔧 [Advanced] Get site devices (raw API). Included in rmm_get_site_health.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -533,8 +533,8 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.listSiteDevices(client, args as Parameters<typeof siteTools.listSiteDevices>[1]),
   },
   {
-    name: 'list-site-open-alerts',
-    description: '🔧 [Advanced] List site alerts (raw API). Included in get-site-health.',
+    name: 'rmm_list_site_open_alerts',
+    description: '🔧 [Advanced] List site alerts (raw API). Included in rmm_get_site_health.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -548,7 +548,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.listSiteOpenAlerts(client, args as Parameters<typeof siteTools.listSiteOpenAlerts>[1]),
   },
   {
-    name: 'list-site-resolved-alerts',
+    name: 'rmm_list_site_resolved_alerts',
     description: 'List resolved alerts for a specific site',
     inputSchema: {
       type: 'object',
@@ -563,7 +563,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.listSiteResolvedAlerts(client, args as Parameters<typeof siteTools.listSiteResolvedAlerts>[1]),
   },
   {
-    name: 'list-site-variables',
+    name: 'rmm_list_site_variables',
     description: 'List variables for a specific site',
     inputSchema: {
       type: 'object',
@@ -577,7 +577,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.listSiteVariables(client, args as Parameters<typeof siteTools.listSiteVariables>[1]),
   },
   {
-    name: 'get-site-settings',
+    name: 'rmm_get_site_settings',
     description: 'Get settings for a specific site (including proxy configuration)',
     inputSchema: {
       type: 'object',
@@ -589,7 +589,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.getSiteSettings(client, args as Parameters<typeof siteTools.getSiteSettings>[1]),
   },
   {
-    name: 'list-site-filters',
+    name: 'rmm_list_site_filters',
     description: 'List device filters for a specific site',
     inputSchema: {
       type: 'object',
@@ -603,7 +603,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.listSiteFilters(client, args as Parameters<typeof siteTools.listSiteFilters>[1]),
   },
   {
-    name: 'create-site',
+    name: 'rmm_create_site',
     description: 'Create a new site in the account',
     inputSchema: {
       type: 'object',
@@ -619,7 +619,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => siteTools.createSite(client, args as Parameters<typeof siteTools.createSite>[1]),
   },
   {
-    name: 'update-site',
+    name: 'rmm_update_site',
     description: 'Update an existing site',
     inputSchema: {
       type: 'object',
@@ -638,8 +638,8 @@ export const tools: ToolDefinition[] = [
 
   // Device Tools
   {
-    name: 'get-device',
-    description: '🔧 [Advanced] Get raw device information by UID. Use get-device-health for comprehensive health snapshot.',
+    name: 'rmm_get_device',
+    description: '🔧 [Advanced] Get raw device information by UID. Use rmm_get_device_health for comprehensive health snapshot.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -650,7 +650,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.getDevice(client, args as Parameters<typeof deviceTools.getDevice>[1]),
   },
   {
-    name: 'get-device-by-id',
+    name: 'rmm_get_device_by_id',
     description: 'Get device information by its numeric ID',
     inputSchema: {
       type: 'object',
@@ -662,7 +662,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.getDeviceById(client, args as Parameters<typeof deviceTools.getDeviceById>[1]),
   },
   {
-    name: 'get-device-by-mac',
+    name: 'rmm_get_device_by_mac',
     description: 'Find devices by MAC address (format: XXXXXXXXXXXX, no colons)',
     inputSchema: {
       type: 'object',
@@ -674,8 +674,8 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.getDeviceByMac(client, args as Parameters<typeof deviceTools.getDeviceByMac>[1]),
   },
   {
-    name: 'list-device-open-alerts',
-    description: '🔧 [Advanced] List device alerts (raw API). Included in get-device-health.',
+    name: 'rmm_list_device_open_alerts',
+    description: '🔧 [Advanced] List device alerts (raw API). Included in rmm_get_device_health.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -689,7 +689,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.listDeviceOpenAlerts(client, args as Parameters<typeof deviceTools.listDeviceOpenAlerts>[1]),
   },
   {
-    name: 'list-device-resolved-alerts',
+    name: 'rmm_list_device_resolved_alerts',
     description: 'List resolved alerts for a specific device',
     inputSchema: {
       type: 'object',
@@ -704,7 +704,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.listDeviceResolvedAlerts(client, args as Parameters<typeof deviceTools.listDeviceResolvedAlerts>[1]),
   },
   {
-    name: 'move-device',
+    name: 'rmm_move_device',
     description: 'Move a device from one site to another',
     inputSchema: {
       type: 'object',
@@ -717,7 +717,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.moveDevice(client, args as Parameters<typeof deviceTools.moveDevice>[1]),
   },
   {
-    name: 'create-quick-job',
+    name: 'rmm_create_quick_job',
     description: 'Create and run a quick job on a device using a component',
     inputSchema: {
       type: 'object',
@@ -742,7 +742,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.createQuickJob(client, args as Parameters<typeof deviceTools.createQuickJob>[1]),
   },
   {
-    name: 'set-device-udf',
+    name: 'rmm_set_device_udf',
     description: 'Set user-defined fields (UDF1-UDF30) on a device',
     inputSchema: {
       type: 'object',
@@ -760,7 +760,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.setDeviceUdf(client, args as Parameters<typeof deviceTools.setDeviceUdf>[1]),
   },
   {
-    name: 'set-device-warranty',
+    name: 'rmm_set_device_warranty',
     description: 'Set the warranty date for a device (format: YYYY-MM-DD, or null to clear)',
     inputSchema: {
       type: 'object',
@@ -775,8 +775,8 @@ export const tools: ToolDefinition[] = [
 
   // Alert Tools
   {
-    name: 'get-alert',
-    description: '🔧 [Advanced] Get raw alert information by UID. Use investigate-alert for deep analysis.',
+    name: 'rmm_get_alert',
+    description: '🔧 [Advanced] Get raw alert information by UID. Use rmm_investigate_alert for deep analysis.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -787,7 +787,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => alertTools.getAlert(client, args as Parameters<typeof alertTools.getAlert>[1]),
   },
   {
-    name: 'resolve-alert',
+    name: 'rmm_resolve_alert',
     description: 'Resolve (close) an open alert',
     inputSchema: {
       type: 'object',
@@ -801,7 +801,7 @@ export const tools: ToolDefinition[] = [
 
   // Job Tools
   {
-    name: 'get-job',
+    name: 'rmm_get_job',
     description: '🔧 [Advanced] Get raw job information by UID',
     inputSchema: {
       type: 'object',
@@ -813,7 +813,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => jobTools.getJob(client, args as Parameters<typeof jobTools.getJob>[1]),
   },
   {
-    name: 'get-job-components',
+    name: 'rmm_get_job_components',
     description: 'Get the components of a job',
     inputSchema: {
       type: 'object',
@@ -827,7 +827,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => jobTools.getJobComponents(client, args as Parameters<typeof jobTools.getJobComponents>[1]),
   },
   {
-    name: 'get-job-results',
+    name: 'rmm_get_job_results',
     description: 'Get job execution results for a specific device',
     inputSchema: {
       type: 'object',
@@ -840,7 +840,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => jobTools.getJobResults(client, args as Parameters<typeof jobTools.getJobResults>[1]),
   },
   {
-    name: 'get-job-stdout',
+    name: 'rmm_get_job_stdout',
     description: 'Get the stdout output from a job execution',
     inputSchema: {
       type: 'object',
@@ -853,7 +853,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => jobTools.getJobStdout(client, args as Parameters<typeof jobTools.getJobStdout>[1]),
   },
   {
-    name: 'get-job-stderr',
+    name: 'rmm_get_job_stderr',
     description: 'Get the stderr output from a job execution',
     inputSchema: {
       type: 'object',
@@ -868,7 +868,7 @@ export const tools: ToolDefinition[] = [
 
   // ==================== Audit Tools ====================
   {
-    name: 'get-device-audit',
+    name: 'rmm_get_device_audit',
     description: 'Get hardware and system audit data for a device',
     inputSchema: {
       type: 'object',
@@ -880,7 +880,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => auditTools.getDeviceAudit(client, args as Parameters<typeof auditTools.getDeviceAudit>[1]),
   },
   {
-    name: 'get-device-software',
+    name: 'rmm_get_device_software',
     description: 'Get list of installed software on a device',
     inputSchema: {
       type: 'object',
@@ -894,7 +894,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => auditTools.getDeviceSoftware(client, args as Parameters<typeof auditTools.getDeviceSoftware>[1]),
   },
   {
-    name: 'get-device-audit-by-mac',
+    name: 'rmm_get_device_audit_by_mac',
     description: 'Get device audit data by MAC address',
     inputSchema: {
       type: 'object',
@@ -906,7 +906,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => auditTools.getDeviceAuditByMac(client, args as Parameters<typeof auditTools.getDeviceAuditByMac>[1]),
   },
   {
-    name: 'get-esxi-audit',
+    name: 'rmm_get_esxi_audit',
     description: 'Get audit data for an ESXi host (including VMs)',
     inputSchema: {
       type: 'object',
@@ -918,7 +918,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => auditTools.getEsxiAudit(client, args as Parameters<typeof auditTools.getEsxiAudit>[1]),
   },
   {
-    name: 'get-printer-audit',
+    name: 'rmm_get_printer_audit',
     description: 'Get audit data for a printer (including supply levels)',
     inputSchema: {
       type: 'object',
@@ -932,7 +932,7 @@ export const tools: ToolDefinition[] = [
 
   // ==================== Activity Log Tools ====================
   {
-    name: 'get-activity-logs',
+    name: 'rmm_get_activity_logs',
     description: 'Get activity logs with filtering options. Returns logs from last 15 minutes by default.',
     inputSchema: {
       type: 'object',
@@ -953,7 +953,7 @@ export const tools: ToolDefinition[] = [
 
   // ==================== Filter Tools ====================
   {
-    name: 'list-default-filters',
+    name: 'rmm_list_default_filters',
     description: 'List the default device filters',
     inputSchema: {
       type: 'object',
@@ -965,7 +965,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => filterTools.listDefaultFilters(client, args as Parameters<typeof filterTools.listDefaultFilters>[1]),
   },
   {
-    name: 'list-custom-filters',
+    name: 'rmm_list_custom_filters',
     description: 'List custom device filters created by users',
     inputSchema: {
       type: 'object',
@@ -979,7 +979,7 @@ export const tools: ToolDefinition[] = [
 
   // ==================== System Tools ====================
   {
-    name: 'get-system-status',
+    name: 'rmm_get_system_status',
     description: 'Get the Datto RMM API system status (no auth required)',
     inputSchema: {
       type: 'object',
@@ -988,7 +988,7 @@ export const tools: ToolDefinition[] = [
     handler: (client) => systemTools.getSystemStatus(client),
   },
   {
-    name: 'get-rate-limit',
+    name: 'rmm_get_rate_limit',
     description: 'Get the current API rate limit status for your account',
     inputSchema: {
       type: 'object',
@@ -997,7 +997,7 @@ export const tools: ToolDefinition[] = [
     handler: (client) => systemTools.getRateLimit(client),
   },
   {
-    name: 'get-pagination-config',
+    name: 'rmm_get_pagination_config',
     description: 'Get the pagination configuration (default and max page sizes)',
     inputSchema: {
       type: 'object',
@@ -1008,7 +1008,7 @@ export const tools: ToolDefinition[] = [
 
   // ==================== Variable Tools ====================
   {
-    name: 'create-account-variable',
+    name: 'rmm_create_account_variable',
     description: 'Create a new account-level variable',
     inputSchema: {
       type: 'object',
@@ -1022,7 +1022,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => variableTools.createAccountVariable(client, args as Parameters<typeof variableTools.createAccountVariable>[1]),
   },
   {
-    name: 'update-account-variable',
+    name: 'rmm_update_account_variable',
     description: 'Update an existing account variable',
     inputSchema: {
       type: 'object',
@@ -1037,7 +1037,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => variableTools.updateAccountVariable(client, args as Parameters<typeof variableTools.updateAccountVariable>[1]),
   },
   {
-    name: 'delete-account-variable',
+    name: 'rmm_delete_account_variable',
     description: 'Delete an account variable',
     inputSchema: {
       type: 'object',
@@ -1049,7 +1049,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => variableTools.deleteAccountVariable(client, args as Parameters<typeof variableTools.deleteAccountVariable>[1]),
   },
   {
-    name: 'create-site-variable',
+    name: 'rmm_create_site_variable',
     description: 'Create a new variable for a specific site',
     inputSchema: {
       type: 'object',
@@ -1064,7 +1064,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => variableTools.createSiteVariable(client, args as Parameters<typeof variableTools.createSiteVariable>[1]),
   },
   {
-    name: 'update-site-variable',
+    name: 'rmm_update_site_variable',
     description: 'Update an existing site variable',
     inputSchema: {
       type: 'object',
@@ -1080,7 +1080,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => variableTools.updateSiteVariable(client, args as Parameters<typeof variableTools.updateSiteVariable>[1]),
   },
   {
-    name: 'delete-site-variable',
+    name: 'rmm_delete_site_variable',
     description: 'Delete a site variable',
     inputSchema: {
       type: 'object',
@@ -1093,7 +1093,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => variableTools.deleteSiteVariable(client, args as Parameters<typeof variableTools.deleteSiteVariable>[1]),
   },
   {
-    name: 'update-site-proxy',
+    name: 'rmm_update_site_proxy',
     description: 'Configure proxy settings for a site',
     inputSchema: {
       type: 'object',
@@ -1110,7 +1110,7 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => variableTools.updateSiteProxy(client, args as Parameters<typeof variableTools.updateSiteProxy>[1]),
   },
   {
-    name: 'delete-site-proxy',
+    name: 'rmm_delete_site_proxy',
     description: 'Remove proxy settings from a site',
     inputSchema: {
       type: 'object',

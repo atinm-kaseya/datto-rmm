@@ -276,7 +276,7 @@ function generateDeviceRecommendations(
   // Offline device
   if (!device.online) {
     recommendations.push('🔴 **Device is offline** - Check network connectivity and agent status');
-    recommendations.push('   Use `diagnose-device-issue` for detailed troubleshooting');
+    recommendations.push('   Use `rmm_diagnose_device_issue` for detailed troubleshooting');
     return recommendations;
   }
 
@@ -311,12 +311,12 @@ function generateDeviceRecommendations(
 
   // Many alerts overall
   if (alerts.length > 5) {
-    recommendations.push(`📊 **${alerts.length} total alerts** - Use \`diagnose-device-issue\` to find root cause`);
+    recommendations.push(`📊 **${alerts.length} total alerts** - Use \`rmm_diagnose_device_issue\` to find root cause`);
   }
 
   // Suggest alert investigation
   if (alerts.length > 0 && recommendations.length === 0) {
-    recommendations.push(`Use \`investigate-alert\` on alert UID: \`${alerts[0]?.alertUid}\` for deep analysis`);
+    recommendations.push(`Use \`rmm_investigate_alert\` on alert UID: \`${alerts[0]?.alertUid}\` for deep analysis`);
   }
 
   return recommendations;

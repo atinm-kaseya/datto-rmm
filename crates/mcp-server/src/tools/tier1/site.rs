@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::sync::Arc;
 
 // ============================================================================
-// get-site-health
+// rmm_get_site_health
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -22,7 +22,7 @@ pub struct GetSiteHealthParams {
 
 pub fn get_site_health_tool() -> Tool {
     tool_helpers::create_tool::<GetSiteHealthParams>(
-        "get-site-health",
+        "rmm_get_site_health",
         "🌟 Tier 1: Complete site health dashboard. Shows device statistics, alert summary, \
          top devices with issues, network config, and recommended actions. \
          Primary entry point after identifying problem sites.",
@@ -307,7 +307,7 @@ pub fn get_site_health_handler() -> ToolHandler {
             let mut action_num = 1;
             
             if offline_devices > 0 {
-                lines.push(format!("{}. **Check offline devices**: Use `list-site-devices` with status filter", action_num));
+                lines.push(format!("{}. **Check offline devices**: Use `rmm_list_site_devices` with status filter", action_num));
                 lines.push("   ```json".to_string());
                 lines.push(format!("   {{ \"site\": \"{}\", \"status\": \"offline\" }}", site_uid));
                 lines.push("   ```".to_string());
@@ -319,7 +319,7 @@ pub fn get_site_health_handler() -> ToolHandler {
                 if let Some((top_device_uid, _)) = top_devices.first() {
                     let device = devices.iter().find(|d| d.uid.as_ref() == Some(top_device_uid));
                     if let Some(hostname) = device.and_then(|d| d.hostname.as_ref()) {
-                        lines.push(format!("{}. **Investigate top device**: `get-device-health` on **{}**", action_num, hostname));
+                        lines.push(format!("{}. **Investigate top device**: `rmm_get_device_health` on **{}**", action_num, hostname));
                         lines.push("   ```json".to_string());
                         lines.push(format!("   {{ \"device\": \"{}\", \"site\": \"{}\" }}", top_device_uid, site_uid));
                         lines.push("   ```".to_string());
@@ -330,7 +330,7 @@ pub fn get_site_health_handler() -> ToolHandler {
             }
 
             if critical_alerts > 5 {
-                lines.push(format!("{}. **Alert analysis**: Use `get-site-alerts` for grouped view", action_num));
+                lines.push(format!("{}. **Alert analysis**: Use `rmm_get_site_alerts` for grouped view", action_num));
                 lines.push("   ```json".to_string());
                 lines.push(format!("   {{ \"site\": \"{}\", \"group_by\": \"type\" }}", site_uid));
                 lines.push("   ```".to_string());
@@ -369,7 +369,7 @@ pub fn get_site_health_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// list-site-devices (Tier 1 composite version)
+// rmm_list_site_devices (Tier 1 composite version)
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -400,7 +400,7 @@ fn default_sort_by() -> String {
 
 pub fn list_site_devices_tool() -> Tool {
     tool_helpers::create_tool::<ListSiteDevicesParams>(
-        "list-site-devices",
+        "rmm_list_site_devices",
         "🌟 [Tier 1] Browse and filter devices within a site with rich formatting.",
     )
 }
@@ -590,8 +590,8 @@ pub fn list_site_devices_handler() -> ToolHandler {
             lines.push("---".to_string());
             lines.push(String::new());
             lines.push("💡 **Next Steps:**".to_string());
-            lines.push("- Use `get-device-health` for detailed device diagnostics".to_string());
-            lines.push("- Use `get-site-alerts` to see all alerts grouped by type or device".to_string());
+            lines.push("- Use `rmm_get_device_health` for detailed device diagnostics".to_string());
+            lines.push("- Use `rmm_get_site_alerts` to see all alerts grouped by type or device".to_string());
 
             let result_data = serde_json::json!({
                 "site": &params.site,
@@ -612,7 +612,7 @@ pub fn list_site_devices_handler() -> ToolHandler {
 
             Ok(tool_helpers::instructed_result(
                 result_data,
-                "Present this filtered list of site devices. Show site name and device count prominently, include active filter summary. For each device display status icon (green online, red offline), hostname prominently, device type, operating system, and open alert count if any. List devices sorted by importance (offline first, then by alert count). End with next step suggestions - use get-device-health for diagnostics or get-site-alerts for grouped alert view. Make problem devices (offline or with alerts) immediately visible.",
+                "Present this filtered list of site devices. Show site name and device count prominently, include active filter summary. For each device display status icon (green online, red offline), hostname prominently, device type, operating system, and open alert count if any. List devices sorted by importance (offline first, then by alert count). End with next step suggestions - use rmm_get_device_health for diagnostics or rmm_get_site_alerts for grouped alert view. Make problem devices (offline or with alerts) immediately visible.",
                 Some(vec!["device_list", "status_icons", "filter_summary", "priority_sorting", "alert_counts", "next_steps"])
             ))
         })
@@ -620,7 +620,7 @@ pub fn list_site_devices_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// get-site-alerts
+// rmm_get_site_alerts
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -643,7 +643,7 @@ fn default_group_by() -> String {
 
 pub fn get_site_alerts_tool() -> Tool {
     tool_helpers::create_tool::<GetSiteAlertsParams>(
-        "get-site-alerts",
+        "rmm_get_site_alerts",
         "🌟 [Tier 1] Alert overview for a specific site with remediation recommendations.",
     )
 }
@@ -747,7 +747,7 @@ pub fn get_site_alerts_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// run-site-component
+// rmm_run_site_component
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -768,7 +768,7 @@ pub struct RunSiteComponentParams {
 
 pub fn run_site_component_tool() -> Tool {
     tool_helpers::create_tool::<RunSiteComponentParams>(
-        "run-site-component",
+        "rmm_run_site_component",
         "🌟 [Tier 1] Execute a component on devices within a site with dry-run support.",
     )
 }
@@ -823,7 +823,7 @@ pub fn run_site_component_handler() -> ToolHandler {
                 lines.push(String::new());
                 lines.push("Use Tier 2 tools for manual component execution:".to_string());
                 lines.push("- `list-account-components` to find component UID".to_string());
-                lines.push("- `create-quick-job` to execute component (when available)".to_string());
+                lines.push("- `rmm_create_quick_job` to execute component (when available)".to_string());
             }
 
             let result_data = serde_json::json!({
@@ -837,7 +837,7 @@ pub fn run_site_component_handler() -> ToolHandler {
 
             Ok(tool_helpers::instructed_result(
                 result_data,
-                "Present this component execution plan or preview. Show site name, component name, target device selection, and execution mode (dry run preview or actual execution). If dry run, explain what would happen and list required steps (component resolution, device resolution, job creation, monitoring). If actual execution attempted, note that API integration is pending and suggest using Tier 2 tools for manual execution (list-account-components and create-quick-job). Make the execution mode and status clear.",
+                "Present this component execution plan or preview. Show site name, component name, target device selection, and execution mode (dry run preview or actual execution). If dry run, explain what would happen and list required steps (component resolution, device resolution, job creation, monitoring). If actual execution attempted, note that API integration is pending and suggest using Tier 2 tools for manual execution (list-account-components and rmm_create_quick_job). Make the execution mode and status clear.",
                 Some(vec!["execution_plan", "dry_run_preview", "pending_implementation", "workaround_suggestions"])
             ))
         })
@@ -845,7 +845,7 @@ pub fn run_site_component_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// bulk-update-site-devices
+// rmm_bulk_update_site_devices
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -870,7 +870,7 @@ fn default_true() -> bool {
 
 pub fn bulk_update_site_devices_tool() -> Tool {
     tool_helpers::create_tool::<BulkUpdateSiteDevicesParams>(
-        "bulk-update-site-devices",
+        "rmm_bulk_update_site_devices",
         "🌟 [Tier 1] Bulk update device properties with dry-run safety.",
     )
 }

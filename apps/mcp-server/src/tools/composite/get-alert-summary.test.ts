@@ -1,12 +1,12 @@
 /**
- * Tests for get-alert-summary composite tool
+ * Tests for rmm_get_alert_summary composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { getAlertSummary } from './get-alert-summary.js';
 import { createMockClient } from '../../test-utils/mock-client.js';
 
-describe('get-alert-summary', () => {
+describe('rmm_get_alert_summary', () => {
   it('should return account-wide alert summary', async () => {
     const client = createMockClient();
     const result = await getAlertSummary(client, {});

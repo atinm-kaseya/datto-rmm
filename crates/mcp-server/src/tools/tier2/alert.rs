@@ -15,7 +15,7 @@ pub struct AlertUidParams {
 
 pub fn get_alert_tool() -> Tool {
     tool_helpers::create_tool::<AlertUidParams>(
-        "get-alert",
+        "rmm_get_alert",
         "🔧 [Advanced] Get alert details. Returns formatted markdown with alert information.",
     )
 }
@@ -82,7 +82,7 @@ pub fn get_alert_handler() -> ToolHandler {
 
 pub fn resolve_alert_tool() -> Tool {
     tool_helpers::create_tool::<AlertUidParams>(
-        "resolve-alert",
+        "rmm_resolve_alert",
         "🔧 [Advanced] Mark an alert as resolved",
     )
 }

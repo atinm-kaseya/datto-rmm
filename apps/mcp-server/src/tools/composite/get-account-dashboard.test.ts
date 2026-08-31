@@ -1,12 +1,12 @@
 /**
- * Tests for get-account-dashboard composite tool
+ * Tests for rmm_get_account_dashboard composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { getAccountDashboard } from './get-account-dashboard.js';
 import { createMockClient } from '../../test-utils/mock-client.js';
 
-describe('get-account-dashboard', () => {
+describe('rmm_get_account_dashboard', () => {
   it('should return account overview', async () => {
     const client = createMockClient();
     const result = await getAccountDashboard(client, {});

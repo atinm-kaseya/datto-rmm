@@ -15,7 +15,7 @@ pub struct DeviceUidParams {
 
 pub fn get_device_audit_tool() -> Tool {
     tool_helpers::create_tool::<DeviceUidParams>(
-        "get-device-audit",
+        "rmm_get_device_audit",
         "🔧 [Advanced] Get device hardware audit. Returns formatted markdown with hardware details.",
     )
 }
@@ -47,7 +47,7 @@ pub fn get_device_audit_handler() -> ToolHandler {
 
 pub fn get_device_software_tool() -> Tool {
     tool_helpers::create_tool::<DeviceUidParams>(
-        "get-device-software",
+        "rmm_get_device_software",
         "🔧 [Advanced] Get installed software. Returns formatted markdown table.",
     )
 }
@@ -101,7 +101,7 @@ pub struct MacAddressParams {
 
 pub fn get_device_audit_by_mac_tool() -> Tool {
     tool_helpers::create_tool::<MacAddressParams>(
-        "get-device-audit-by-mac",
+        "rmm_get_device_audit_by_mac",
         "🔧 [Advanced] Get device audit by MAC address. Returns formatted markdown with hardware details.",
     )
 }
@@ -133,7 +133,7 @@ pub fn get_device_audit_by_mac_handler() -> ToolHandler {
 
 pub fn get_esxi_audit_tool() -> Tool {
     tool_helpers::create_tool::<DeviceUidParams>(
-        "get-esxi-audit",
+        "rmm_get_esxi_audit",
         "🔧 [Advanced] Get ESXi host audit data. Returns formatted markdown with ESXi details.",
     )
 }
@@ -165,7 +165,7 @@ pub fn get_esxi_audit_handler() -> ToolHandler {
 
 pub fn get_printer_audit_tool() -> Tool {
     tool_helpers::create_tool::<DeviceUidParams>(
-        "get-printer-audit",
+        "rmm_get_printer_audit",
         "🔧 [Advanced] Get printer audit data. Returns formatted markdown with printer details.",
     )
 }

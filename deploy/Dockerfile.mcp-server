@@ -1,0 +1,68 @@
+# syntax=docker/dockerfile:1
+# Multi-stage build for datto-rmm-mcp-server
+# NO credentials stored in image layers (SECURITY-12)
+# Tag with git SHA in CI — never use :latest (SECURITY-10)
+
+# ── Stage 1: build ──────────────────────────────────────────────────────────
+FROM rust:1.87-slim-bookworm AS builder
+
+WORKDIR /build
+
+# Install build dependencies (OpenSSL for reqwest)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cache dependency compilation separately from source changes.
+# Copy only manifests first so `cargo build` caches deps even when src changes.
+COPY Cargo.toml Cargo.lock ./
+COPY crates/datto-api/Cargo.toml        crates/datto-api/Cargo.toml
+COPY crates/mcp-server/Cargo.toml       crates/mcp-server/Cargo.toml
+
+# Create stub lib/bin files so cargo can resolve the workspace without real sources
+RUN mkdir -p crates/datto-api/src \
+    && echo "pub fn _stub() {}" > crates/datto-api/src/lib.rs \
+    && mkdir -p crates/mcp-server/src \
+    && echo "fn main() {}" > crates/mcp-server/src/main.rs
+
+# Download and compile dependencies (cached unless Cargo.toml/Cargo.lock change)
+RUN cargo build --release --bin datto-rmm-mcp 2>&1 || true
+
+# Now copy real sources and rebuild — only source compilation is re-done
+COPY crates/ crates/
+# Touch main.rs so cargo detects the change and recompiles
+RUN touch crates/mcp-server/src/main.rs \
+    && touch crates/datto-api/src/lib.rs
+
+RUN cargo build --release --bin datto-rmm-mcp
+
+# ── Stage 2: runtime ────────────────────────────────────────────────────────
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime CA certs and libssl (for HTTPS to DRMM API)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user for least-privilege container execution
+RUN useradd --uid 10000 --no-create-home --shell /sbin/nologin mcp
+
+WORKDIR /app
+
+COPY --from=builder /build/target/release/datto-rmm-mcp ./datto-rmm-mcp
+
+# Ensure binary is owned by root but executable by all (no setuid needed)
+RUN chmod 755 /app/datto-rmm-mcp
+
+USER mcp
+
+# MCP SSE transport listens on this port; override with --port at runtime
+EXPOSE 8080
+
+# Default: SSE transport.  Platform and credentials are injected at session
+# time via X-Datto-Api-Key / X-Datto-Api-Secret headers — NOT as env vars.
+# Override LOG_LEVEL via ECS task environment (safe, non-secret metadata).
+ENTRYPOINT ["/app/datto-rmm-mcp"]
+CMD ["--transport", "sse", "--port", "8080", "--log-level", "info"]

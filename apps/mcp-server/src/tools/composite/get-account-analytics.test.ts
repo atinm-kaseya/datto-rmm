@@ -1,12 +1,12 @@
 /**
- * Tests for get-account-analytics composite tool
+ * Tests for rmm_get_account_analytics composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { createMockClient } from '../../test-utils/mock-client.js';
 import { getAccountAnalytics } from './get-account-analytics.js';
 
-describe('get-account-analytics', () => {
+describe('rmm_get_account_analytics', () => {
   it('should provide comprehensive account analytics', async () => {
     const client = createMockClient();
 

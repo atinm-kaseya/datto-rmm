@@ -1,12 +1,12 @@
 /**
- * Tests for find-sites-with-issues composite tool
+ * Tests for rmm_find_sites_with_issues composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { findSitesWithIssues } from './find-sites-with-issues.js';
 import { createMockClient } from '../../test-utils/mock-client.js';
 
-describe('find-sites-with-issues', () => {
+describe('rmm_find_sites_with_issues', () => {
   it('should find and rank sites by combined score', async () => {
     const client = createMockClient();
     const result = await findSitesWithIssues(client, {});
@@ -58,6 +58,6 @@ describe('find-sites-with-issues', () => {
     const text = result.content[0]!.text;
     
     expect(text).toContain('## 💡 Recommended Next Steps');
-    expect(text).toContain('get-site-health');
+    expect(text).toContain('rmm_get_site_health');
   });
 });

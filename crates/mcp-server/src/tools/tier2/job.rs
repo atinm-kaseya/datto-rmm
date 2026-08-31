@@ -21,7 +21,7 @@ pub struct JobOutputParams {
 
 pub fn get_job_tool() -> Tool {
     tool_helpers::create_tool::<JobUidParams>(
-        "get-job",
+        "rmm_get_job",
         "🔧 [Advanced] Get job information. Returns Job JSON with: uid, name, enabled boolean, schedule info, componentUids array, devices array, lastRunTime epoch. Format with ✅❌ for enabled status, convert epoch times, show component and device counts. Use 📅 for schedule, ⚙️ for components, 💻 for devices.",
     )
 }
@@ -51,7 +51,7 @@ pub fn get_job_handler() -> ToolHandler {
 
 pub fn get_job_results_tool() -> Tool {
     tool_helpers::create_tool::<JobUidParams>(
-        "get-job-results",
+        "rmm_get_job_results",
         "🔧 [Advanced] Get job execution results. Returns JobResults JSON with: overall status, componentResults array (each has status, startTime epoch, endTime epoch, exitCode, deviceName). Format with sections: **Status** ✅❌, **Summary** (success/failure counts, consider progress bar or pie chart), **Per-Device Table** (Device, Status ✅❌, Exit Code, Runtime in seconds/minutes). Highlight failures in red.",
     )
 }
@@ -81,7 +81,7 @@ pub fn get_job_results_handler() -> ToolHandler {
 
 pub fn get_job_components_tool() -> Tool {
     tool_helpers::create_tool::<JobUidParams>(
-        "get-job-components",
+        "rmm_get_job_components",
         "🔧 [Advanced] Get job components details. Returns JSON - format as list showing: Component Name, UID, Order/Sequence, Type, Parameters (if any). Present in execution order.",
     )
 }
@@ -111,7 +111,7 @@ pub fn get_job_components_handler() -> ToolHandler {
 
 pub fn get_job_stdout_tool() -> Tool {
     tool_helpers::create_tool::<JobOutputParams>(
-        "get-job-stdout",
+        "rmm_get_job_stdout",
         "🔧 [Advanced] Get job standard output",
     )
 }
@@ -145,7 +145,7 @@ pub fn get_job_stdout_handler() -> ToolHandler {
 
 pub fn get_job_stderr_tool() -> Tool {
     tool_helpers::create_tool::<JobOutputParams>(
-        "get-job-stderr",
+        "rmm_get_job_stderr",
         "🔧 [Advanced] Get job standard error",
     )
 }

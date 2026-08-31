@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 pub fn get_account_tool() -> Tool {
     tool_helpers::create_tool_no_params(
-        "get-account",
+        "rmm_get_account",
         "🔧 [Advanced] Get account information. Returns formatted markdown with account name, UID in backticks, and device status with 🟢/🔴 icons.",
     )
 }
@@ -45,7 +45,7 @@ pub struct ListSitesParams {
 
 pub fn list_sites_tool() -> Tool {
     tool_helpers::create_tool::<ListSitesParams>(
-        "list-sites",
+        "rmm_list_sites",
         "🔧 [Advanced] List sites. Returns formatted markdown with health icons 🟢🟡🔴, site names, device counts, and UIDs in backticks for follow-up queries.",
     )
 }
@@ -89,7 +89,7 @@ pub struct ListDevicesParams {
 
 pub fn list_devices_tool() -> Tool {
     tool_helpers::create_tool::<ListDevicesParams>(
-        "list-devices",
+        "rmm_list_devices",
         "🔧 [Advanced] List devices. Returns formatted table with 🟢/🔴 status, hostname, type, site. Device UIDs can be extracted for follow-up queries.",
     )
 }
@@ -133,7 +133,7 @@ pub struct ListAlertsParams {
 
 pub fn list_open_alerts_tool() -> Tool {
     tool_helpers::create_tool::<ListAlertsParams>(
-        "list-open-alerts",
+        "rmm_list_open_alerts",
         "🔧 [Advanced] List open alerts. Returns formatted markdown grouped by priority 🔴🟠🟡🟢 with alert messages, devices, and sites. Alert UIDs can be extracted for investigation.",
     )
 }
@@ -169,7 +169,7 @@ pub fn list_open_alerts_handler() -> ToolHandler {
 
 pub fn list_resolved_alerts_tool() -> Tool {
     tool_helpers::create_tool::<ListAlertsParams>(
-        "list-resolved-alerts",
+        "rmm_list_resolved_alerts",
          "🔧 [Advanced] List resolved alerts. Returns formatted table with priority icons 🔴🟠🟡🟢, device, site, and alert type.",
     )
 }
@@ -213,7 +213,7 @@ pub struct PaginationParams {
 
 pub fn list_components_tool() -> Tool {
     tool_helpers::create_tool::<PaginationParams>(
-        "list-components",
+        "rmm_list_components",
         "🔧 [Advanced] List available job components. Returns formatted markdown grouped by category with component names, descriptions, and UIDs in backticks.",
     )
 }
@@ -249,7 +249,7 @@ pub fn list_components_handler() -> ToolHandler {
 
 pub fn list_account_variables_tool() -> Tool {
     tool_helpers::create_tool::<PaginationParams>(
-        "list-account-variables",
+        "rmm_list_account_variables",
         "🔧 [Advanced] List account variables. Returns formatted table with variable names, values (🔑 for sensitive), and IDs in backticks.",
     )
 }
@@ -285,7 +285,7 @@ pub fn list_account_variables_handler() -> ToolHandler {
 
 pub fn list_users_tool() -> Tool {
     tool_helpers::create_tool::<PaginationParams>(
-        "list-users",
+        "rmm_list_users",
         "🔧 [Advanced] List users. Returns formatted table with ✅/🔴 status, username, name, and email.",
     )
 }
@@ -328,7 +328,7 @@ pub struct MeteringSummaryParams {
 
 pub fn get_metering_summary_tool() -> Tool {
     tool_helpers::create_tool::<MeteringSummaryParams>(
-        "get-api-metering-summary",
+        "rmm_get_api_metering_summary",
         "Get API call metering statistics for this account. Returns total calls, breakdown by origin (mcp vs api), top endpoints, top MCP agents, and error rate. Optionally filter by origin.",
     )
 }

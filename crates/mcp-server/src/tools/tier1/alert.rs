@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::sync::Arc;
 
 // ============================================================================
-// get-alert-summary
+// rmm_get_alert_summary
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -40,7 +40,7 @@ fn default_time_range() -> String {
 
 pub fn get_alert_summary_tool() -> Tool {
     tool_helpers::create_tool::<GetAlertSummaryParams>(
-        "get-alert-summary",
+        "rmm_get_alert_summary",
         "🌟 Tier 1: Alert trending and analytics. Shows alert counts by grouping dimension, \
          trending analysis vs previous period, most affected devices/sites, and common patterns. \
          Supports both account-wide and site-filtered views.",
@@ -209,7 +209,7 @@ pub fn get_alert_summary_handler() -> ToolHandler {
 }
 
 // ============================================================================
-// investigate-alert
+// rmm_investigate_alert
 // ============================================================================
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -224,7 +224,7 @@ pub struct InvestigateAlertParams {
 
 pub fn investigate_alert_tool() -> Tool {
     tool_helpers::create_tool::<InvestigateAlertParams>(
-        "investigate-alert",
+        "rmm_investigate_alert",
         "🌟 [Tier 1] Deep alert analysis with pattern detection and resolution suggestions.",
     )
 }

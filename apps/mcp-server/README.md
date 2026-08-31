@@ -24,37 +24,37 @@ High-level composite tools that aggregate multiple API calls into single operati
 
 | Tool | Purpose | Use When |
 |------|---------|----------|
-| `get-account-dashboard` | Start-of-day triage overview | "What needs attention today?" |
-| `find-sites-with-issues` | Identify problem sites | "Which sites have issues?" |
-| `get-site-health` | Complete site health dashboard | "Check Acme Corp site" |
-| `search-devices` | Find devices across all sites | "Find web-server-01" (don't know which site) |
+| `rmm_get_account_dashboard` | Start-of-day triage overview | "What needs attention today?" |
+| `rmm_find_sites_with_issues` | Identify problem sites | "Which sites have issues?" |
+| `rmm_get_site_health` | Complete site health dashboard | "Check Acme Corp site" |
+| `rmm_search_devices` | Find devices across all sites | "Find web-server-01" (don't know which site) |
 
 #### Phase 2: Device Health & Alert Analysis (✅ Complete)
 
 | Tool | Purpose | Use When |
 |------|---------|----------|
-| `get-device-health` | Complete device health snapshot | "Check web-server-01 at Acme Corp" |
-| `diagnose-device-issue` | AI-assisted troubleshooting | "Why is this device slow?" |
-| `investigate-alert` | Deep alert analysis with patterns | "Why did this alert fire?" |
-| `get-alert-summary` | Alert trending and analytics | "Show me alert trends this week" |
+| `rmm_get_device_health` | Complete device health snapshot | "Check web-server-01 at Acme Corp" |
+| `rmm_diagnose_device_issue` | AI-assisted troubleshooting | "Why is this device slow?" |
+| `rmm_investigate_alert` | Deep alert analysis with patterns | "Why did this alert fire?" |
+| `rmm_get_alert_summary` | Alert trending and analytics | "Show me alert trends this week" |
 
 #### Phase 3: Operations & Bulk Actions (✅ Complete)
 
 | Tool | Purpose | Use When |
 |------|---------|----------|
-| `list-site-devices` | Browse/filter devices in site | "Show me all servers at Acme Corp" |
-| `get-site-alerts` | Site alert overview with grouping | "What alerts does this site have?" |
-| `run-site-component` | Execute jobs on site devices | "Run disk cleanup on all servers" |
-| `bulk-update-site-devices` | Mass device updates (site-scoped) | "Set warranty dates for all devices" |
-| `get-account-analytics` | Usage metrics and trending | "Show device growth this quarter" |
+| `rmm_list_site_devices` | Browse/filter devices in site | "Show me all servers at Acme Corp" |
+| `rmm_get_site_alerts` | Site alert overview with grouping | "What alerts does this site have?" |
+| `rmm_run_site_component` | Execute jobs on site devices | "Run disk cleanup on all servers" |
+| `rmm_bulk_update_site_devices` | Mass device updates (site-scoped) | "Set warranty dates for all devices" |
+| `rmm_get_account_analytics` | Usage metrics and trending | "Show device growth this quarter" |
 
 **Example Workflow:**
 ```
-1. Triage: get-account-dashboard → Shows 3 sites with critical alerts
-2. Prioritize: find-sites-with-issues → Acme Corp has most problems
-3. Site Health: get-site-health({ site: "Acme Corp" }) → 2 servers offline, 12 critical alerts
-4. Investigate: get-device-health({ device: "web-server-01", site: "Acme Corp" }) → Disk 95% full
-5. Remediate: run-site-component({ site: "Acme Corp", devices: ["web-server-01"], component: "Disk Cleanup" })
+1. Triage: rmm_get_account_dashboard → Shows 3 sites with critical alerts
+2. Prioritize: rmm_find_sites_with_issues → Acme Corp has most problems
+3. Site Health: rmm_get_site_health({ site: "Acme Corp" }) → 2 servers offline, 12 critical alerts
+4. Investigate: rmm_get_device_health({ device: "web-server-01", site: "Acme Corp" }) → Disk 95% full
+5. Remediate: rmm_run_site_component({ site: "Acme Corp", devices: ["web-server-01"], component: "Disk Cleanup" })
 ```
 
 ---
@@ -70,9 +70,9 @@ High-level composite tools that aggregate multiple API calls into single operati
 - Need formatted, readable output with context
 
 **Examples:**
-- "Show me sites with issues" → `find-sites-with-issues`
-- "Check health of Acme Corp" → `get-site-health`
-- "Why is web-server-01 slow?" → `diagnose-device-issue`
+- "Show me sites with issues" → `rmm_find_sites_with_issues`
+- "Check health of Acme Corp" → `rmm_get_site_health`
+- "Why is web-server-01 slow?" → `rmm_diagnose_device_issue`
 
 **🔧 Use Tier 2 (API-Level) When:**
 - Need granular control over specific API operations
@@ -83,8 +83,8 @@ High-level composite tools that aggregate multiple API calls into single operati
 
 **Examples:**
 - "Update device UID abc123 with warranty '2027-12-31'" → `update-device` (Tier 2)
-- "Get audit data for device xyz789" → `get-device-audit` (Tier 2)
-- "List all components with category 'Backup'" → `list-components` (Tier 2)
+- "Get audit data for device xyz789" → `rmm_get_device_audit` (Tier 2)
+- "List all components with category 'Backup'" → `rmm_list_components` (Tier 2)
 
 **💡 Progressive Approach:**
 1. Start with Tier 1 tools (simple, natural language)
@@ -97,28 +97,28 @@ High-level composite tools that aggregate multiple API calls into single operati
 #### Recommended Tools Quick Reference
 
 **Daily Triage:**
-1. `get-account-dashboard` - See what needs attention
-2. `find-sites-with-issues` - Prioritize sites
-3. `get-site-health` - Investigate priority sites
+1. `rmm_get_account_dashboard` - See what needs attention
+2. `rmm_find_sites_with_issues` - Prioritize sites
+3. `rmm_get_site_health` - Investigate priority sites
 
 **Device Troubleshooting:**
-1. `get-device-health` - Complete device snapshot
-2. `diagnose-device-issue` - AI-assisted diagnosis
-3. `run-site-component` - Execute remediation
+1. `rmm_get_device_health` - Complete device snapshot
+2. `rmm_diagnose_device_issue` - AI-assisted diagnosis
+3. `rmm_run_site_component` - Execute remediation
 
 **Alert Management:**
-1. `get-alert-summary` - See patterns and trends
-2. `investigate-alert` - Deep dive into specific alert
-3. `get-site-alerts` - Site-focused alert view
+1. `rmm_get_alert_summary` - See patterns and trends
+2. `rmm_investigate_alert` - Deep dive into specific alert
+3. `rmm_get_site_alerts` - Site-focused alert view
 
 **Bulk Operations:**
-1. `list-site-devices` - Identify target devices
-2. `bulk-update-site-devices` - Preview changes (dry-run)
-3. `bulk-update-site-devices` - Apply changes (dry_run: false)
-4. `run-site-component` - Execute on multiple devices
+1. `rmm_list_site_devices` - Identify target devices
+2. `rmm_bulk_update_site_devices` - Preview changes (dry-run)
+3. `rmm_bulk_update_site_devices` - Apply changes (dry_run: false)
+4. `rmm_run_site_component` - Execute on multiple devices
 
 **Reporting:**
-1. `get-account-analytics` - Usage metrics and trends
+1. `rmm_get_account_analytics` - Usage metrics and trends
 
 
 
@@ -204,20 +204,20 @@ Start with these tools for common workflows. They aggregate multiple API calls a
 
 | Tool | Purpose | Returns |
 |------|---------|---------|
-| `get-account-dashboard` | Start-of-day overview | Critical sites, alert summary, device counts, recommended actions |
-| `find-sites-with-issues` | Identify problem sites | Ranked sites with alerts/offline devices, common issue types |
-| `search-devices` | Find device across all sites | Devices matching query with site context, alert counts, UIDs |
+| `rmm_get_account_dashboard` | Start-of-day overview | Critical sites, alert summary, device counts, recommended actions |
+| `rmm_find_sites_with_issues` | Identify problem sites | Ranked sites with alerts/offline devices, common issue types |
+| `rmm_search_devices` | Find device across all sites | Devices matching query with site context, alert counts, UIDs |
 
 #### Site Operations
 
 | Tool | Purpose | Returns |
 |------|---------|---------|
-| `get-site-health` | Complete site dashboard | Device stats, alerts by type, top problem devices, recommended actions |
+| `rmm_get_site_health` | Complete site dashboard | Device stats, alerts by type, top problem devices, recommended actions |
 
 **Typical workflow:**
-1. `get-account-dashboard` → See what needs attention
-2. `find-sites-with-issues` → Identify problem sites
-3. `get-site-health` → Drill into specific site
+1. `rmm_get_account_dashboard` → See what needs attention
+2. `rmm_find_sites_with_issues` → Identify problem sites
+3. `rmm_get_site_health` → Drill into specific site
 4. Use device/alert tools to remediate
 
 ---
@@ -229,90 +229,90 @@ Direct API endpoint mappings for granular control. Use when Tier 1 tools don't c
 #### Account Operations
 | Tool | Description |
 |------|-------------|
-| `get-account` | Get account information and device status summary |
-| `list-sites` | List all sites with filtering |
-| `list-devices` | List all devices with filtering by hostname, site, type, OS |
-| `list-users` | List account users |
-| `list-account-variables` | List account-level variables |
-| `list-components` | List available job components |
-| `list-open-alerts` | List all open alerts |
-| `list-resolved-alerts` | List resolved alerts |
+| `rmm_get_account` | Get account information and device status summary |
+| `rmm_list_sites` | List all sites with filtering |
+| `rmm_list_devices` | List all devices with filtering by hostname, site, type, OS |
+| `rmm_list_users` | List account users |
+| `rmm_list_account_variables` | List account-level variables |
+| `rmm_list_components` | List available job components |
+| `rmm_list_open_alerts` | List all open alerts |
+| `rmm_list_resolved_alerts` | List resolved alerts |
 
 #### Site Operations
 | Tool | Description |
 |------|-------------|
-| `get-site` | Get detailed site information |
-| `list-site-devices` | List devices in a site |
-| `list-site-open-alerts` | List open alerts for a site |
-| `list-site-resolved-alerts` | List resolved alerts for a site |
-| `list-site-variables` | List site variables |
-| `get-site-settings` | Get site settings (proxy, etc.) |
-| `list-site-filters` | List device filters for a site |
-| `create-site` | Create a new site |
-| `update-site` | Update site details |
+| `rmm_get_site` | Get detailed site information |
+| `rmm_list_site_devices` | List devices in a site |
+| `rmm_list_site_open_alerts` | List open alerts for a site |
+| `rmm_list_site_resolved_alerts` | List resolved alerts for a site |
+| `rmm_list_site_variables` | List site variables |
+| `rmm_get_site_settings` | Get site settings (proxy, etc.) |
+| `rmm_list_site_filters` | List device filters for a site |
+| `rmm_create_site` | Create a new site |
+| `rmm_update_site` | Update site details |
 
 #### Device Operations
 | Tool | Description |
 |------|-------------|
-| `get-device` | Get device details by UID |
-| `get-device-by-id` | Get device by numeric ID |
-| `get-device-by-mac` | Find devices by MAC address |
-| `list-device-open-alerts` | List open alerts for a device |
-| `list-device-resolved-alerts` | List resolved alerts for a device |
-| `move-device` | Move device to another site |
-| `create-quick-job` | Run a quick job on a device |
-| `set-device-udf` | Set user-defined fields |
-| `set-device-warranty` | Set warranty date |
+| `rmm_get_device` | Get device details by UID |
+| `rmm_get_device_by_id` | Get device by numeric ID |
+| `rmm_get_device_by_mac` | Find devices by MAC address |
+| `rmm_list_device_open_alerts` | List open alerts for a device |
+| `rmm_list_device_resolved_alerts` | List resolved alerts for a device |
+| `rmm_move_device` | Move device to another site |
+| `rmm_create_quick_job` | Run a quick job on a device |
+| `rmm_set_device_udf` | Set user-defined fields |
+| `rmm_set_device_warranty` | Set warranty date |
 
 #### Alert Operations
 | Tool | Description |
 |------|-------------|
-| `get-alert` | Get alert details |
-| `resolve-alert` | Resolve an open alert |
+| `rmm_get_alert` | Get alert details |
+| `rmm_resolve_alert` | Resolve an open alert |
 
 ### Job Operations
 | Tool | Description |
 |------|-------------|
-| `get-job` | Get job details |
-| `get-job-components` | Get job components |
-| `get-job-results` | Get job results for a device |
-| `get-job-stdout` | Get job stdout output |
-| `get-job-stderr` | Get job stderr output |
+| `rmm_get_job` | Get job details |
+| `rmm_get_job_components` | Get job components |
+| `rmm_get_job_results` | Get job results for a device |
+| `rmm_get_job_stdout` | Get job stdout output |
+| `rmm_get_job_stderr` | Get job stderr output |
 
 ### Audit Operations
 | Tool | Description |
 |------|-------------|
-| `get-device-audit` | Get hardware/system audit data |
-| `get-device-software` | List installed software |
-| `get-device-audit-by-mac` | Get audit by MAC address |
-| `get-esxi-audit` | Get ESXi host audit (incl. VMs) |
-| `get-printer-audit` | Get printer audit (incl. supplies) |
+| `rmm_get_device_audit` | Get hardware/system audit data |
+| `rmm_get_device_software` | List installed software |
+| `rmm_get_device_audit_by_mac` | Get audit by MAC address |
+| `rmm_get_esxi_audit` | Get ESXi host audit (incl. VMs) |
+| `rmm_get_printer_audit` | Get printer audit (incl. supplies) |
 
 ### Activity & Filters
 | Tool | Description |
 |------|-------------|
-| `get-activity-logs` | Get activity logs with filtering |
-| `list-default-filters` | List default device filters |
-| `list-custom-filters` | List custom device filters |
+| `rmm_get_activity_logs` | Get activity logs with filtering |
+| `rmm_list_default_filters` | List default device filters |
+| `rmm_list_custom_filters` | List custom device filters |
 
 ### System Operations
 | Tool | Description |
 |------|-------------|
-| `get-system-status` | Get API system status |
-| `get-rate-limit` | Get current rate limit status |
-| `get-pagination-config` | Get pagination configuration |
+| `rmm_get_system_status` | Get API system status |
+| `rmm_get_rate_limit` | Get current rate limit status |
+| `rmm_get_pagination_config` | Get pagination configuration |
 
 ### Variable Operations
 | Tool | Description |
 |------|-------------|
-| `create-account-variable` | Create account variable |
-| `update-account-variable` | Update account variable |
-| `delete-account-variable` | Delete account variable |
-| `create-site-variable` | Create site variable |
-| `update-site-variable` | Update site variable |
-| `delete-site-variable` | Delete site variable |
-| `update-site-proxy` | Configure site proxy |
-| `delete-site-proxy` | Remove site proxy |
+| `rmm_create_account_variable` | Create account variable |
+| `rmm_update_account_variable` | Update account variable |
+| `rmm_delete_account_variable` | Delete account variable |
+| `rmm_create_site_variable` | Create site variable |
+| `rmm_update_site_variable` | Update site variable |
+| `rmm_delete_site_variable` | Delete site variable |
+| `rmm_update_site_proxy` | Configure site proxy |
+| `rmm_delete_site_proxy` | Remove site proxy |
 
 ## Available Resources
 

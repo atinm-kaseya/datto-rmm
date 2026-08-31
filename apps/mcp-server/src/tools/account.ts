@@ -79,7 +79,7 @@ export async function listSites(
       const deviceCount = site.devicesStatus?.numberOfDevices ?? 0;
       const onlineCount = site.devicesStatus?.numberOfOnlineDevices ?? 0;
       lines.push(`## ${site.name}`);
-      lines.push(`- **Site UID:** \`${site.uid}\` _(use with get-site)_`);
+      lines.push(`- **Site UID:** \`${site.uid}\` _(use with rmm_get_site)_`);
       lines.push(`- **Devices:** ${deviceCount} (${onlineCount} online)`);
       if (site.description) {
         lines.push(`- **Description:** ${site.description}`);
@@ -148,7 +148,7 @@ export async function listDevices(
     for (const device of data.devices) {
       const status = device.online ? 'Online' : 'Offline';
       lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **Device UID:** \`${device.uid}\` _(use with get-device)_`);
+      lines.push(`- **Device UID:** \`${device.uid}\` _(use with rmm_get_device)_`);
       lines.push(`- **Status:** ${status}`);
       lines.push(`- **Site:** ${device.siteName ?? 'N/A'}`);
       lines.push(`- **Type:** ${device.deviceType?.type ?? 'N/A'}`);

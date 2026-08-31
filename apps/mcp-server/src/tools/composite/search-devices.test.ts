@@ -1,12 +1,12 @@
 /**
- * Tests for search-devices composite tool
+ * Tests for rmm_search_devices composite tool
  */
 
 import { describe, it, expect } from 'vitest';
 import { searchDevices } from './search-devices.js';
 import { createMockClient } from '../../test-utils/mock-client.js';
 
-describe('search-devices', () => {
+describe('rmm_search_devices', () => {
   it('should search devices by hostname', async () => {
     const client = createMockClient();
     const result = await searchDevices(client, { query: 'web-server' });
@@ -150,7 +150,7 @@ describe('search-devices', () => {
     const text = result.content[0]!.text;
     
     expect(text).toContain('## 💡 Next Steps');
-    expect(text).toContain('get-device-health');
-    expect(text).toContain('get-site-health');
+    expect(text).toContain('rmm_get_device_health');
+    expect(text).toContain('rmm_get_site_health');
   });
 });

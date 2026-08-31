@@ -328,7 +328,7 @@ function generateSummaryRecommendations(alerts: T.Alert[], group_by: string): st
       .sort((a, b) => b[1].length - a[1].length)[0];
     
     if (topDevice && topDevice[1].length > 3) {
-      recommendations.push(`**Focus:** ${topDevice[0]} has ${topDevice[1].length} alerts - Use \`diagnose-device-issue\` to troubleshoot`);
+      recommendations.push(`**Focus:** ${topDevice[0]} has ${topDevice[1].length} alerts - Use \`rmm_diagnose_device_issue\` to troubleshoot`);
     }
   }
 

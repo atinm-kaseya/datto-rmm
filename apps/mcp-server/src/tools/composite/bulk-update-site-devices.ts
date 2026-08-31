@@ -270,10 +270,10 @@ export async function bulkUpdateSiteDevices(
     lines.push('## 💡 Next Steps');
     lines.push('');
     lines.push(
-      `- Verify changes: \`list-site-devices({ site: "${site}" })\``
+      `- Verify changes: \`rmm_list_site_devices({ site: "${site}" })\``
     );
     lines.push(
-      `- Check device details: \`get-device-health({ device: "${targetDevices[0]?.hostname}", site: "${site}" })\``
+      `- Check device details: \`rmm_get_device_health({ device: "${targetDevices[0]?.hostname}", site: "${site}" })\``
     );
 
     return {

@@ -115,7 +115,7 @@ impl ToolRegistry {
 
         // Site tools
         self.register(tier2::site::get_site_tool(), tier2::site::get_site_handler());
-        self.register(tier2::site::list_site_devices_tool(), tier2::site::list_site_devices_handler()); // Registered as 'get-site-devices'
+        self.register(tier2::site::list_site_devices_tool(), tier2::site::list_site_devices_handler()); // Registered as 'rmm_get_site_devices'
         self.register(tier2::site::list_site_open_alerts_tool(), tier2::site::list_site_open_alerts_handler());
         self.register(tier2::site::list_site_resolved_alerts_tool(), tier2::site::list_site_resolved_alerts_handler());
         self.register(tier2::site::get_site_settings_tool(), tier2::site::get_site_settings_handler());

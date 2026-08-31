@@ -93,7 +93,7 @@ export async function listSiteDevices(
     for (const device of data.devices) {
       const status = device.online ? 'Online' : 'Offline';
       lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **Device UID:** \`${device.uid}\` _(use with get-device)_`);
+      lines.push(`- **Device UID:** \`${device.uid}\` _(use with rmm_get_device)_`);
       lines.push(`- **Status:** ${status}`);
       lines.push(`- **Type:** ${device.deviceType?.type ?? 'N/A'}`);
       lines.push(`- **OS:** ${device.operatingSystem ?? 'N/A'}`);
@@ -144,7 +144,7 @@ export async function listSiteOpenAlerts(
 
     for (const alert of data.alerts) {
       lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with get-alert or resolve-alert)_`);
+      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with rmm_get_alert or rmm_resolve_alert)_`);
       lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
       lines.push(`- **Device:** ${alert.alertSourceInfo?.deviceName ?? 'N/A'}`);
       lines.push(`- **Created:** ${alert.timestamp ?? 'N/A'}`);
@@ -190,7 +190,7 @@ export async function listSiteResolvedAlerts(
 
     for (const alert of data.alerts) {
       lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with get-alert)_`);
+      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with rmm_get_alert)_`);
       lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
       lines.push(`- **Device:** ${alert.alertSourceInfo?.deviceName ?? 'N/A'}`);
       lines.push(`- **Resolved:** ${alert.resolvedOn ?? 'N/A'}`);
