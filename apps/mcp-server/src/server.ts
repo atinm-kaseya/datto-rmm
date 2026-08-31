@@ -3,6 +3,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
@@ -11,6 +13,28 @@ import { createDattoClient, type DattoClient } from 'datto-rmm-api';
 import { type ServerConfig } from './config.js';
 import { tools, getTool, LAZY_TOOL_GROUPS, CORE_TOOL_NAMES, getToolGroup } from './tools/index.js';
 import { resources, resourceTemplates, readResource } from './resources/index.js';
+
+export const SYSTEM_PROMPT = `Datto RMM MCP. 14 core tools always loaded; use rmm_load_tools({group}) for Tier 2.
+
+GROUPS: account | sites | devices | alerts | jobs | audit | activity | filters | system | variables
+
+WHEN TO LOAD:
+account-wide listing → account
+site CRUD/settings → sites
+device lookup/jobs/UDF → devices
+individual alert → alerts
+job results/output → jobs
+hardware/software audit → audit
+activity log → activity
+filter list → filters
+API status/rate limits → system
+create/update variables → variables
+
+ID ORDER: resolve siteUid before deviceUid. Use rmm_search_devices when only hostname is known.
+
+WRITES: show preview and confirm before any WRITE, UPDATE, or DESTRUCTIVE call.
+
+ERRORS: on rate_limited, narrow query (date range or site filter) and retry once.`;
 
 /**
  * Create and configure the MCP server.
@@ -37,7 +61,9 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
       capabilities: {
         tools: {},
         resources: {},
+        prompts: {},
       },
+      instructions: SYSTEM_PROMPT,
     }
   );
 
@@ -113,6 +139,33 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
         isError: true,
       };
     }
+  });
+
+  // Register prompt handlers
+  server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    return {
+      prompts: [
+        {
+          name: 'system-instructions',
+          description: 'Datto RMM server instructions: tool groups, trigger map, ID ordering, write rules, error handling.',
+        },
+      ],
+    };
+  });
+
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    if (request.params.name !== 'system-instructions') {
+      throw new Error(`Unknown prompt: ${request.params.name}`);
+    }
+    return {
+      description: 'Datto RMM server instructions',
+      messages: [
+        {
+          role: 'user',
+          content: { type: 'text', text: SYSTEM_PROMPT },
+        },
+      ],
+    };
   });
 
   // Register resource handlers
