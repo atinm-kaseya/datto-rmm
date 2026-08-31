@@ -1,5 +1,5 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { handleVoidResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
+import { handleVoidResponse, successResponse, errorResponse, mapApiError, type ToolResult } from '../utils/response.js';
 
 /**
  * Create an account variable.
@@ -17,10 +17,9 @@ export async function createAccountVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Account variable "${args.name}" created successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error creating account variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -43,10 +42,9 @@ export async function updateAccountVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Account variable ${args.variableId} updated successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error updating account variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -64,10 +62,9 @@ export async function deleteAccountVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Account variable ${args.variableId} deleted successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error deleting account variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -90,10 +87,9 @@ export async function createSiteVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site variable "${args.name}" created successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error creating site variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -119,10 +115,9 @@ export async function updateSiteVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site variable ${args.variableId} updated successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error updating site variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -143,10 +138,9 @@ export async function deleteSiteVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site variable ${args.variableId} deleted successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error deleting site variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -178,10 +172,9 @@ export async function updateSiteProxy(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site ${args.siteUid} proxy settings updated successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error updating site proxy: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -199,9 +192,8 @@ export async function deleteSiteProxy(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site ${args.siteUid} proxy settings deleted successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error deleting site proxy: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }

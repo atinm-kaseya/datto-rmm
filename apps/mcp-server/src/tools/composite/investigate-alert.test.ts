@@ -26,13 +26,16 @@ describe('rmm_investigate_alert', () => {
     const result = await investigateAlert(client, { alert_uid: 'alert-1' });
 
     expect(result.isError).toBeUndefined();
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('# Alert Investigation:');
-    expect(text).toContain('**Alert UID:**');
-    expect(text).toContain('## 📱 Device Context');
-    expect(text).toContain('## 📊 Impact Assessment');
-    expect(text).toContain('## 💡 Resolution Suggestions');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.alert).toBeDefined();
+    expect(body.data.alert.uid).toBe('alert-1');
+    expect(body.data.alert.priority).toBe('Critical');
+    expect(body.data.device).toBeDefined();
+    expect(body.data.impact).toBeDefined();
+    expect(body.data.resolutionSuggestions).toBeInstanceOf(Array);
   });
 
   it('should find similar alerts when requested', async () => {
@@ -77,15 +80,18 @@ describe('rmm_investigate_alert', () => {
       },
     });
 
-    const result = await investigateAlert(client, { 
+    const result = await investigateAlert(client, {
       alert_uid: 'alert-1',
       include_similar: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 🔍 Similar Alerts');
-    expect(text).toContain('server-02');
-    expect(text).toContain('Pattern detected');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.similarAlerts).toBeInstanceOf(Array);
+    expect(body.data.similarAlerts.length).toBeGreaterThan(0);
+
+    const deviceNames = body.data.similarAlerts.map((a: any) => a.deviceName);
+    expect(deviceNames).toContain('server-02');
   });
 
   it('should assess impact correctly', async () => {
@@ -105,10 +111,11 @@ describe('rmm_investigate_alert', () => {
     });
 
     const result = await investigateAlert(client, { alert_uid: 'alert-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 📊 Impact Assessment');
-    expect(text).toContain('**Severity:** Critical');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.impact).toBeDefined();
+    expect(body.data.impact).toContain('Critical');
   });
 
   it('should provide resolution suggestions', async () => {
@@ -128,10 +135,14 @@ describe('rmm_investigate_alert', () => {
     });
 
     const result = await investigateAlert(client, { alert_uid: 'alert-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 💡 Resolution Suggestions');
-    expect(text).toContain('service');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.resolutionSuggestions).toBeInstanceOf(Array);
+    expect(body.data.resolutionSuggestions.length).toBeGreaterThan(0);
+
+    const suggestionText = body.data.resolutionSuggestions.join(' ').toLowerCase();
+    expect(suggestionText).toContain('service');
   });
 
   it('should handle alert not found', async () => {
@@ -146,9 +157,12 @@ describe('rmm_investigate_alert', () => {
     };
 
     const result = await investigateAlert(client, { alert_uid: 'nonexistent' });
-    
+
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Alert not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Alert not found');
   });
 
   it('should work without similar alerts option', async () => {
@@ -172,7 +186,8 @@ describe('rmm_investigate_alert', () => {
       include_similar: false,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).not.toContain('## 🔍 Similar Alerts');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.similarAlerts).toHaveLength(0);
   });
 });

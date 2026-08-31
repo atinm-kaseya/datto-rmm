@@ -15,13 +15,15 @@ describe('rmm_get_account_analytics', () => {
       metrics: ['devices', 'alerts', 'sites'],
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('# Account Analytics');
-    expect(text).toContain('**Time Range:** Last 30 days');
-    expect(text).toContain('## 📊 Device Metrics');
-    expect(text).toContain('## 🏢 Site Metrics');
-    expect(text).toContain('## ⚠️  Alert Metrics');
-    expect(text).toContain('## 💡 Insights & Recommendations');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.timeRange).toBe('month');
+    expect(body.data.account).toBeDefined();
+    expect(body.data.metrics).toBeDefined();
+    expect(body.data.metrics.devices).toBeDefined();
+    expect(body.data.metrics.sites).toBeDefined();
+    expect(body.data.metrics.alerts).toBeDefined();
   });
 
   it('should show device metrics', async () => {
@@ -31,11 +33,16 @@ describe('rmm_get_account_analytics', () => {
       metrics: ['devices'],
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**Total Devices:**');
-    expect(text).toContain('**Online:**');
-    expect(text).toContain('**Device Types:**');
-    expect(text).toContain('**Operating Systems:**');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.metrics.devices).toBeDefined();
+
+    const deviceMetrics = body.data.metrics.devices;
+    expect(typeof deviceMetrics.total).toBe('number');
+    expect(typeof deviceMetrics.online).toBe('number');
+    expect(typeof deviceMetrics.offline).toBe('number');
+    expect(deviceMetrics.byType).toBeDefined();
+    expect(deviceMetrics.byOs).toBeDefined();
   });
 
   it('should show site metrics', async () => {
@@ -45,10 +52,14 @@ describe('rmm_get_account_analytics', () => {
       metrics: ['sites'],
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 🏢 Site Metrics');
-    expect(text).toContain('**Total Sites:**');
-    expect(text).toContain('**Top Sites by Device Count:**');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.metrics.sites).toBeDefined();
+
+    const siteMetrics = body.data.metrics.sites;
+    expect(typeof siteMetrics.total).toBe('number');
+    expect(typeof siteMetrics.avgDevicesPerSite).toBe('number');
+    expect(siteMetrics.topSites).toBeInstanceOf(Array);
   });
 
   it('should show alert metrics', async () => {
@@ -58,11 +69,15 @@ describe('rmm_get_account_analytics', () => {
       metrics: ['alerts'],
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## ⚠️  Alert Metrics');
-    expect(text).toContain('**Total Open Alerts:**');
-    expect(text).toContain('**Alert Age Distribution:**');
-    expect(text).toContain('**Most Common Alert Types:**');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.metrics.alerts).toBeDefined();
+
+    const alertMetrics = body.data.metrics.alerts;
+    expect(typeof alertMetrics.total).toBe('number');
+    expect(typeof alertMetrics.critical).toBe('number');
+    expect(alertMetrics.ageDistribution).toBeDefined();
+    expect(alertMetrics.topTypes).toBeDefined();
   });
 
   it('should handle different time ranges', async () => {
@@ -72,25 +87,30 @@ describe('rmm_get_account_analytics', () => {
       time_range: 'week',
     });
 
-    const textWeek = resultWeek.content[0]!.text;
-    expect(textWeek).toContain('**Time Range:** Last 7 days');
+    const bodyWeek = JSON.parse(resultWeek.content[0]!.text);
+    expect(bodyWeek.ok).toBe(true);
+    expect(bodyWeek.data.timeRange).toBe('week');
 
     const resultQuarter = await getAccountAnalytics(client, {
       time_range: 'quarter',
     });
 
-    const textQuarter = resultQuarter.content[0]!.text;
-    expect(textQuarter).toContain('**Time Range:** Last 90 days');
+    const bodyQuarter = JSON.parse(resultQuarter.content[0]!.text);
+    expect(bodyQuarter.ok).toBe(true);
+    expect(bodyQuarter.data.timeRange).toBe('quarter');
   });
 
-  it('should provide actionable insights', async () => {
+  it('should return account info', async () => {
     const client = createMockClient();
 
     const result = await getAccountAnalytics(client, {});
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 💡 Insights & Recommendations');
-    expect(text).toContain('**Suggested Actions:**');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.account).toBeDefined();
+    expect(body.data.account.name).toBeDefined();
+    expect(body.data.totalSites).toBeGreaterThanOrEqual(0);
+    expect(body.data.totalDevices).toBeGreaterThanOrEqual(0);
   });
 
   it('should default to all metrics and month timerange', async () => {
@@ -98,11 +118,12 @@ describe('rmm_get_account_analytics', () => {
 
     const result = await getAccountAnalytics(client, {});
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**Time Range:** Last 30 days');
-    expect(text).toContain('## 📊 Device Metrics');
-    expect(text).toContain('## 🏢 Site Metrics');
-    expect(text).toContain('## ⚠️  Alert Metrics');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.timeRange).toBe('month');
+    expect(body.data.metrics.devices).toBeDefined();
+    expect(body.data.metrics.sites).toBeDefined();
+    expect(body.data.metrics.alerts).toBeDefined();
   });
 
   it('should calculate device type breakdown', async () => {
@@ -150,11 +171,17 @@ describe('rmm_get_account_analytics', () => {
       metrics: ['devices'],
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('Server: 2 devices');
-    expect(text).toContain('Workstation: 1 device');
-    expect(text).toContain('Laptop: 1 device');
-    expect(text).toContain('**Online:** 3 (75.0%) | **Offline:** 1');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+
+    const deviceMetrics = body.data.metrics.devices;
+    expect(deviceMetrics.total).toBe(4);
+    expect(deviceMetrics.online).toBe(3);
+    expect(deviceMetrics.offline).toBe(1);
+    expect(deviceMetrics.onlinePercent).toBe(75.0);
+    expect(deviceMetrics.byType.Server).toBe(2);
+    expect(deviceMetrics.byType.Workstation).toBe(1);
+    expect(deviceMetrics.byType.Laptop).toBe(1);
   });
 
   it('should show alert age distribution', async () => {
@@ -192,14 +219,17 @@ describe('rmm_get_account_analytics', () => {
       metrics: ['alerts'],
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**Alert Age Distribution:**');
-    expect(text).toContain('<1 hour: 1 alert');
-    expect(text).toContain('1-24 hours: 1 alert');
-    expect(text).toContain('>24 hours: 1 alert');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+
+    const alertMetrics = body.data.metrics.alerts;
+    expect(alertMetrics.ageDistribution).toBeDefined();
+    expect(alertMetrics.ageDistribution.recent).toBe(1);  // <1 hour
+    expect(alertMetrics.ageDistribution.today).toBe(1);   // 1-24 hours
+    expect(alertMetrics.ageDistribution.stale).toBe(1);   // >24 hours
   });
 
-  it('should identify high offline device rates', async () => {
+  it('should identify high offline device rates in metrics', async () => {
     const devices = Array.from({ length: 20 }, (_, i) => ({
       uid: `device-${i}`,
       hostname: `device-${i}`,
@@ -220,8 +250,13 @@ describe('rmm_get_account_analytics', () => {
       metrics: ['devices'],
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('High offline device rate');
-    expect(text).toContain('25.0%');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+
+    const deviceMetrics = body.data.metrics.devices;
+    expect(deviceMetrics.total).toBe(20);
+    expect(deviceMetrics.online).toBe(15);
+    expect(deviceMetrics.offline).toBe(5);
+    expect(deviceMetrics.onlinePercent).toBe(75.0);
   });
 });

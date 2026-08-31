@@ -1,5 +1,5 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { handleResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
+import { handleResponse, successResponse, errorResponse, mapApiError, extractPageMeta, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -39,47 +39,10 @@ export async function getActivityLogs(
         },
       },
     });
-    const data = handleResponse<T.ActivityLogsPage>(response);
-
-    if (!data.activities || data.activities.length === 0) {
-      return successResult('No activity logs found');
-    }
-
-    const lines = [
-      '# Activity Logs',
-      '',
-      `Found ${data.activities.length} entries`,
-      '',
-    ];
-
-    for (const activity of data.activities) {
-      // The date is a unix timestamp (number), not a string
-      const timestamp = activity.date ? new Date(activity.date * 1000).toISOString() : 'Unknown time';
-      lines.push(`## ${timestamp}`);
-      lines.push(`- **Entity:** ${activity.entity ?? 'N/A'}`);
-      lines.push(`- **Category:** ${activity.category ?? 'N/A'}`);
-      lines.push(`- **Action:** ${activity.action ?? 'N/A'}`);
-      if (activity.details) {
-        lines.push(`- **Details:** ${activity.details}`);
-      }
-      if (activity.user) {
-        lines.push(`- **User:** ${activity.user.userName ?? 'N/A'}`);
-      }
-      if (activity.site) {
-        lines.push(`- **Site:** ${activity.site.name ?? 'N/A'}`);
-      }
-      if (activity.hostname) {
-        lines.push(`- **Hostname:** ${activity.hostname}`);
-      }
-      lines.push('');
-    }
-
-    if (data.pageDetails?.nextPageUrl) {
-      lines.push('_More results available. Use pagination to see more._');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.ActivityLogsPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.activities ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching activity logs: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }

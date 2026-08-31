@@ -20,14 +20,15 @@ describe('rmm_bulk_update_site_devices', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('# Bulk Update Plan');
-    expect(text).toContain('**Site:** Acme Corp');
-    expect(text).toContain('## Changes to Apply');
-    expect(text).toContain('**Description:** "Production Web Server"');
-    expect(text).toContain('**Warranty:** 2025-12-31');
-    expect(text).toContain('## 🔍 Dry Run Mode');
-    expect(text).toContain('No changes have been applied');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.dryRun).toBe(true);
+    expect(body.data.site).toBeDefined();
+    expect(body.data.updates).toBeDefined();
+    expect(body.data.updates.description).toBe('Production Web Server');
+    expect(body.data.updates.warranty).toBe('2025-12-31');
+    expect(body.data.targetDevices).toBeInstanceOf(Array);
+    expect(body.data.targetDevices[0].hostname).toBe('web-server-01');
   });
 
   it('should handle multiple devices', async () => {
@@ -40,10 +41,14 @@ describe('rmm_bulk_update_site_devices', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**Devices:** 2 devices');
-    expect(text).toContain('web-server-01');
-    expect(text).toContain('db-server-01');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.dryRun).toBe(true);
+    expect(body.data.targetDevices).toHaveLength(2);
+
+    const hostnames = body.data.targetDevices.map((d: any) => d.hostname);
+    expect(hostnames).toContain('web-server-01');
+    expect(hostnames).toContain('db-server-01');
   });
 
   it('should handle "all" devices selection', async () => {
@@ -56,8 +61,10 @@ describe('rmm_bulk_update_site_devices', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**Devices:**');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.targetDevices).toBeInstanceOf(Array);
+    expect(body.data.targetDevices.length).toBeGreaterThan(0);
   });
 
   it('should handle UDF updates', async () => {
@@ -75,14 +82,14 @@ describe('rmm_bulk_update_site_devices', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**UDF Fields:**');
-    expect(text).toContain('patchGroup: "Weekend"');
-    expect(text).toContain('location: "Data Center A"');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.updates.udf).toBeDefined();
+    expect(body.data.updates.udf.patchGroup).toBe('Weekend');
+    expect(body.data.updates.udf.location).toBe('Data Center A');
   });
 
   it('should enforce 50-device limit', async () => {
-    // Create a large site with many devices at Acme Corp
     const devices = Array.from({ length: 60 }, (_, i) => ({
       uid: `device-${i}`,
       hostname: `server-${i.toString().padStart(2, '0')}`,
@@ -107,8 +114,11 @@ describe('rmm_bulk_update_site_devices', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Too many devices');
-    expect(result.content[0]!.text).toContain('Maximum 50 devices');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('validation_error');
+    expect(body.detail).toContain('Too many devices');
+    expect(body.detail).toContain('50');
   });
 
   it('should handle device not found', async () => {
@@ -122,7 +132,10 @@ describe('rmm_bulk_update_site_devices', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Device "nonexistent-device" not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('nonexistent-device');
   });
 
   it('should handle site not found', async () => {
@@ -141,10 +154,13 @@ describe('rmm_bulk_update_site_devices', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Site not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Site not found');
   });
 
-  it('should simulate updates in live mode', async () => {
+  it('should apply updates in live mode', async () => {
     const client = createMockClient();
 
     const result = await bulkUpdateSiteDevices(client, {
@@ -154,9 +170,12 @@ describe('rmm_bulk_update_site_devices', () => {
       dry_run: false,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## ⚙️ Update Results');
-    expect(text).toContain('updated successfully');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.dryRun).toBe(false);
+    expect(body.data.results).toBeInstanceOf(Array);
+    expect(body.data.results[0].success).toBe(true);
+    expect(body.data.results[0].hostname).toBe('web-server-01');
   });
 
   it('should default to dry-run true for safety', async () => {
@@ -169,7 +188,8 @@ describe('rmm_bulk_update_site_devices', () => {
       // dry_run not specified - should default to true
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 🔍 Dry Run Mode');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.dryRun).toBe(true);
   });
 });

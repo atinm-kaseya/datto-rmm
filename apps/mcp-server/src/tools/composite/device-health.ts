@@ -6,7 +6,7 @@
  */
 
 import type { DattoClient } from 'datto-rmm-api';
-import { handleResponse, errorResult, type ToolResult } from '../../utils/response.js';
+import { handleResponse, type ToolResult } from '../../utils/response.js';
 import type * as T from '../../types.js';
 
 export interface DeviceHealthArgs {

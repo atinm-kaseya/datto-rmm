@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, handleVoidResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
+import { normalizePagination } from '../utils/pagination.js';
+import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, extractPageMeta, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -14,42 +14,9 @@ export async function getSite(client: DattoClient, args: { siteUid: string }): P
       },
     });
     const data = handleResponse<T.Site>(response);
-
-    const lines = [
-      `# Site: ${data.name}`,
-      '',
-      `**UID:** ${data.uid}`,
-      `**ID:** ${data.id}`,
-      `**Account UID:** ${data.accountUid ?? 'N/A'}`,
-      '',
-      '## Details',
-      `- **Description:** ${data.description ?? 'N/A'}`,
-      `- **Notes:** ${data.notes ?? 'N/A'}`,
-      `- **On Demand:** ${data.onDemand ? 'Yes' : 'No'}`,
-      `- **Splashtop Auto Install:** ${data.splashtopAutoInstall ? 'Yes' : 'No'}`,
-      '',
-      '## Device Status',
-      `- Total Devices: ${data.devicesStatus?.numberOfDevices ?? 0}`,
-      `- Online: ${data.devicesStatus?.numberOfOnlineDevices ?? 0}`,
-      `- Offline: ${data.devicesStatus?.numberOfOfflineDevices ?? 0}`,
-    ];
-
-    if (data.proxySettings) {
-      lines.push('');
-      lines.push('## Proxy Settings');
-      lines.push(`- **Type:** ${data.proxySettings.type ?? 'N/A'}`);
-      lines.push(`- **Host:** ${data.proxySettings.host ?? 'N/A'}`);
-      lines.push(`- **Port:** ${data.proxySettings.port ?? 'N/A'}`);
-    }
-
-    if (data.portalUrl) {
-      lines.push('');
-      lines.push(`**Portal URL:** ${data.portalUrl}`);
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching site: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -73,40 +40,11 @@ export async function listSiteDevices(
         },
       },
     });
-    const data = handleResponse<T.DevicesPage>(response);
-
-    if (!data.devices || data.devices.length === 0) {
-      return successResult('No devices found in this site');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Site Devices (${pageInfo.count} total)`,
-      '',
-    ];
-
-    if (pageInfo.totalPages > 1) {
-      lines.push(`Page ${pageInfo.page} of ${pageInfo.totalPages}`);
-      lines.push('');
-    }
-
-    for (const device of data.devices) {
-      const status = device.online ? 'Online' : 'Offline';
-      lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **Device UID:** \`${device.uid}\` _(use with rmm_get_device)_`);
-      lines.push(`- **Status:** ${status}`);
-      lines.push(`- **Type:** ${device.deviceType?.type ?? 'N/A'}`);
-      lines.push(`- **OS:** ${device.operatingSystem ?? 'N/A'}`);
-      lines.push('');
-    }
-
-    if (pageInfo.hasMore) {
-      lines.push(`_Use page=${pageInfo.page + 1} to see more results_`);
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.DevicesPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.devices ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing site devices: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -130,30 +68,11 @@ export async function listSiteOpenAlerts(
         },
       },
     });
-    const data = handleResponse<T.AlertsPage>(response);
-
-    if (!data.alerts || data.alerts.length === 0) {
-      return successResult('No open alerts for this site');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Site Open Alerts (${pageInfo.count} total)`,
-      '',
-    ];
-
-    for (const alert of data.alerts) {
-      lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with rmm_get_alert or rmm_resolve_alert)_`);
-      lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
-      lines.push(`- **Device:** ${alert.alertSourceInfo?.deviceName ?? 'N/A'}`);
-      lines.push(`- **Created:** ${alert.timestamp ?? 'N/A'}`);
-      lines.push('');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.AlertsPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing site alerts: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -177,29 +96,11 @@ export async function listSiteResolvedAlerts(
         },
       },
     });
-    const data = handleResponse<T.AlertsPage>(response);
-
-    if (!data.alerts || data.alerts.length === 0) {
-      return successResult('No resolved alerts for this site');
-    }
-
-    const lines = [
-      '# Site Resolved Alerts',
-      '',
-    ];
-
-    for (const alert of data.alerts) {
-      lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with rmm_get_alert)_`);
-      lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
-      lines.push(`- **Device:** ${alert.alertSourceInfo?.deviceName ?? 'N/A'}`);
-      lines.push(`- **Resolved:** ${alert.resolvedOn ?? 'N/A'}`);
-      lines.push('');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.AlertsPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing site resolved alerts: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -222,25 +123,11 @@ export async function listSiteVariables(
         },
       },
     });
-    const data = handleResponse<T.VariablesPage>(response);
-
-    if (!data.variables || data.variables.length === 0) {
-      return successResult('No variables found for this site');
-    }
-
-    const lines = [
-      '# Site Variables',
-      '',
-    ];
-
-    for (const variable of data.variables) {
-      const value = variable.masked ? '********' : (variable.value ?? 'N/A');
-      lines.push(`- **${variable.name}:** ${value}${variable.masked ? ' (masked)' : ''}`);
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.VariablesPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.variables ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing site variables: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -255,25 +142,9 @@ export async function getSiteSettings(client: DattoClient, args: { siteUid: stri
       },
     });
     const data = handleResponse<T.SiteSettings>(response);
-
-    const lines = [
-      '# Site Settings',
-      '',
-    ];
-
-    if (data.proxySettings) {
-      lines.push('## Proxy Settings');
-      lines.push(`- **Type:** ${data.proxySettings.type ?? 'N/A'}`);
-      lines.push(`- **Host:** ${data.proxySettings.host ?? 'N/A'}`);
-      lines.push(`- **Port:** ${data.proxySettings.port ?? 'N/A'}`);
-      lines.push(`- **Username:** ${data.proxySettings.username ?? 'N/A'}`);
-    } else {
-      lines.push('No proxy settings configured');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching site settings: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -296,29 +167,11 @@ export async function listSiteFilters(
         },
       },
     });
-    const data = handleResponse<T.FiltersPage>(response);
-
-    if (!data.filters || data.filters.length === 0) {
-      return successResult('No filters found for this site');
-    }
-
-    const lines = [
-      '# Site Device Filters',
-      '',
-    ];
-
-    for (const filter of data.filters) {
-      lines.push(`## ${filter.name ?? 'Unknown Filter'}`);
-      lines.push(`- **ID:** ${filter.id}`);
-      if (filter.description) {
-        lines.push(`- **Description:** ${filter.description}`);
-      }
-      lines.push('');
-    }
-
-    return successResult(lines.join('\n'));
+    const page = handleResponse<T.FiltersPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.filters ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing site filters: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -346,10 +199,9 @@ export async function createSite(
       },
     });
     const data = handleResponse<T.Site>(response);
-
-    return successResult(`Site "${args.name}" created successfully.\nUID: ${data.uid ?? 'N/A'}`);
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error creating site: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -381,9 +233,8 @@ export async function updateSite(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site ${args.siteUid} updated successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error updating site: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }

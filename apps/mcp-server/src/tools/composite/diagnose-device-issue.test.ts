@@ -15,16 +15,17 @@ describe('rmm_diagnose_device_issue', () => {
     });
 
     expect(result.isError).toBeUndefined();
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('# Diagnostic Report:');
-    expect(text).toContain('**Issue:** "slow performance"');
-    expect(text).toContain('## 🔍 Related Findings');
-    expect(text).toContain('## 🎯 Likely Causes');
-    expect(text).toContain('## 📋 Action Plan');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.device).toBeDefined();
+    expect(body.data.issue).toBe('slow performance');
+    expect(body.data.findings).toBeInstanceOf(Array);
+    expect(body.data.recommendations).toBeInstanceOf(Array);
   });
 
-  it('should identify disk-related alerts', async () => {
+  it('should identify disk-related alerts in findings', async () => {
     const client = createMockClient({
       deviceAlerts: {
         pageDetails: { count: 2, totalCount: 2, prevPageUrl: undefined, nextPageUrl: undefined },
@@ -50,20 +51,26 @@ describe('rmm_diagnose_device_issue', () => {
       issue: 'disk space low',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('Disk Space');
-    expect(text).toContain('## 🔍 Related Findings');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.findings).toBeInstanceOf(Array);
+
+    const findingsText = body.data.findings.join(' ');
+    expect(findingsText).toContain('Disk Space');
   });
 
-  it('should show failed jobs in history', async () => {
+  it('should show failed jobs in findings', async () => {
     const client = createMockClient();
     const result = await diagnoseDeviceIssue(client, {
       device: 'device-1',
       issue: 'backup failing',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 📋 Recent Job History');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    // The default mock client has a failed Disk Cleanup job
+    const findingsText = body.data.findings.join(' ');
+    expect(findingsText).toContain('failure');
   });
 
   it('should provide specific action plan based on issue', async () => {
@@ -73,9 +80,16 @@ describe('rmm_diagnose_device_issue', () => {
       issue: 'backup failing',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 📋 Action Plan');
-    expect(text).toContain('Step 1:');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.recommendations).toBeInstanceOf(Array);
+    expect(body.data.recommendations.length).toBeGreaterThan(0);
+
+    // Each recommendation has priority and action fields
+    const rec = body.data.recommendations[0];
+    expect(rec).toHaveProperty('priority');
+    expect(rec).toHaveProperty('action');
+    expect(['high', 'medium', 'low']).toContain(rec.priority);
   });
 
   it('should handle offline devices', async () => {
@@ -106,10 +120,10 @@ describe('rmm_diagnose_device_issue', () => {
       issue: 'not responding',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 🔴 Current Status');
-    expect(text).toContain('**Online:** No');
-    expect(text).toContain('Device is offline');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.device.online).toBe(false);
+    expect(body.data.findings).toContain('Device is offline');
   });
 
   it('should handle device not found', async () => {
@@ -126,6 +140,9 @@ describe('rmm_diagnose_device_issue', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Device not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Device not found');
   });
 });

@@ -1,12 +1,12 @@
 /**
  * Tier 1 Composite Tool: List Site Devices
- * 
+ *
  * Browse and filter devices within a site.
  * Supports filtering by status, type, and alert presence.
  */
 
 import type { DattoClient } from 'datto-rmm-api';
-import { handleResponse, errorResult, type ToolResult } from '../../utils/response.js';
+import { handleResponse, successResponse, errorResponse, mapApiError, type ToolResult } from '../../utils/response.js';
 import type * as T from '../../types.js';
 
 export interface ListSiteDevicesArgs {
@@ -24,13 +24,6 @@ export interface ListSiteDevicesArgs {
 
 /**
  * List and filter devices within a site.
- * 
- * Supports multiple filter criteria:
- * - Online/offline status
- * - Device type
- * - Presence of alerts
- * 
- * Returns formatted device list with health indicators.
  */
 export async function listSiteDevices(
   client: DattoClient,
@@ -45,19 +38,12 @@ export async function listSiteDevices(
   } = args;
 
   try {
-    // Step 1: Resolve site by name or UID
+    // Resolve site
     let siteUid: string | null = null;
-    let siteName: string | null = null;
 
-    // Check if it's a UID (alphanumeric, 20+ chars)
     if (site.match(/^[a-zA-Z0-9-]{20,}$/)) {
       siteUid = site;
-      const siteRes = await client.GET('/v2/site/{siteUid}', {
-        params: { path: { siteUid: site } },
-      });
-      siteName = (siteRes.data as any)?.name ?? null;
     } else {
-      // Search by name
       const sitesRes = await client.GET('/v2/account/sites', {
         params: { query: { max: 50 } },
       });
@@ -66,26 +52,23 @@ export async function listSiteDevices(
       const match = sites.find(
         (s) => s.name?.toLowerCase() === site.toLowerCase()
       );
-
       if (match) {
         siteUid = match.uid ?? null;
-        siteName = match.name ?? null;
       }
     }
 
     if (!siteUid) {
-      return errorResult(
-        `Site not found: "${site}". Try searching by exact name or UID.`
-      );
+      return errorResponse({
+        error: 'entity_not_found',
+        detail: `Site not found: "${site}". Try searching by exact name or UID.`,
+        code: 404,
+      });
     }
 
-    // Step 2: Fetch devices and optionally alerts
+    // Fetch devices and optionally alerts
     const fetchPromises: Promise<any>[] = [
       client.GET('/v2/site/{siteUid}/devices', {
-        params: {
-          path: { siteUid },
-          query: { max: 100 },
-        },
+        params: { path: { siteUid }, query: { max: 100 } },
       }),
     ];
 
@@ -104,12 +87,10 @@ export async function listSiteDevices(
     const devicesData = handleResponse<T.DevicesPage>(devicesRes);
     let devices = devicesData.devices ?? [];
 
-    // Build alert count map if needed
     let alertCounts = new Map<string, number>();
     if (alertsRes) {
       const alertsData = handleResponse<T.AlertsPage>(alertsRes);
       const alerts = alertsData.alerts ?? [];
-
       for (const alert of alerts) {
         const deviceUid = alert.alertSourceInfo?.deviceUid;
         if (deviceUid) {
@@ -118,7 +99,7 @@ export async function listSiteDevices(
       }
     }
 
-    // Step 3: Apply filters
+    // Apply filters
     if (status !== 'all') {
       const isOnline = status === 'online';
       devices = devices.filter((d) => d.online === isOnline);
@@ -135,21 +116,20 @@ export async function listSiteDevices(
       devices = devices.filter((d) => (d.uid ? alertCounts.get(d.uid) : 0) ?? 0 > 0);
     }
 
-    // Step 4: Sort devices
+    // Sort
     if (sort_by === 'alerts') {
       devices.sort((a, b) => {
         const aCount = (a.uid ? alertCounts.get(a.uid) : 0) ?? 0;
         const bCount = (b.uid ? alertCounts.get(b.uid) : 0) ?? 0;
-        return bCount - aCount; // Descending
+        return bCount - aCount;
       });
     } else if (sort_by === 'last_seen') {
       devices.sort((a, b) => {
         const aTime = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
         const bTime = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
-        return bTime - aTime; // Most recent first
+        return bTime - aTime;
       });
     } else {
-      // sort_by === 'name'
       devices.sort((a, b) => {
         const aName = a.hostname ?? '';
         const bName = b.hostname ?? '';
@@ -157,104 +137,21 @@ export async function listSiteDevices(
       });
     }
 
-    // Step 5: Build response
-    const lines: string[] = [];
-    lines.push(`# Devices: ${siteName ?? siteUid}`);
-    lines.push('');
+    const data = devices.map((device) => ({
+      hostname: device.hostname ?? null,
+      uid: device.uid ?? null,
+      online: device.online ?? false,
+      deviceType: device.deviceType?.type ?? null,
+      alertCount: device.uid ? alertCounts.get(device.uid) ?? 0 : 0,
+      internalIp: device.intIpAddress ?? null,
+      lastSeen: device.lastSeen ?? null,
+    }));
 
-    if (devices.length === 0) {
-      lines.push('No devices found matching the specified filters.');
-      lines.push('');
-      lines.push('💡 **Try:**');
-      lines.push('- Remove filters to see all devices');
-      lines.push('- Check if the site has any devices registered');
-
-      return {
-        content: [{ type: 'text', text: lines.join('\n') }],
-      };
-    }
-
-    lines.push(`Found **${devices.length}** device${devices.length !== 1 ? 's' : ''}`);
-
-    // Add filter summary
-    const filters: string[] = [];
-    if (status !== 'all') filters.push(`Status: ${status}`);
-    if (type) filters.push(`Type: ${type}`);
-    if (has_alerts) filters.push('Has alerts');
-    if (filters.length > 0) {
-      lines.push(`Filters: ${filters.join(', ')}`);
-    }
-    lines.push('');
-
-    // List devices
-    for (const device of devices) {
-      const statusIcon = device.online ? '🟢' : '🔴';
-      const hostname = device.hostname ?? 'Unknown';
-      const deviceType = device.deviceType?.type ?? 'Unknown';
-      const os = device.operatingSystem ?? 'Unknown OS';
-      const ip = device.intIpAddress ?? device.extIpAddress ?? 'No IP';
-
-      lines.push(`### ${statusIcon} ${hostname}`);
-      lines.push(`**Type:** ${deviceType} | **OS:** ${os}`);
-      lines.push(`**IP:** ${ip}`);
-
-      if (!device.online && device.lastSeen) {
-        const lastSeen = new Date(device.lastSeen);
-        const hoursAgo = Math.floor((Date.now() - lastSeen.getTime()) / 3600000);
-        lines.push(`**Last Seen:** ${hoursAgo}h ago`);
-      }
-
-      // Alert summary
-      const alertCount = device.uid ? alertCounts.get(device.uid) ?? 0 : 0;
-      if (alertCount > 0) {
-        lines.push(`🔴 **${alertCount} open alert${alertCount !== 1 ? 's' : ''}**`);
-      } else {
-        lines.push('✅ No open alerts');
-      }
-
-      lines.push(`**Device UID:** \`${device.uid ?? 'Unknown'}\``);
-      lines.push('');
-    }
-
-    // Recommendations
-    lines.push('---');
-    lines.push('');
-    lines.push('## 💡 Next Steps');
-    lines.push('');
-
-    const offlineDevices = devices.filter((d) => !d.online);
-    const devicesWithAlerts = devices.filter(
-      (d) => (d.uid ? alertCounts.get(d.uid) ?? 0 : 0) > 0
-    );
-
-    if (offlineDevices.length > 0) {
-      const firstOffline = offlineDevices[0];
-      lines.push(
-        `- Investigate offline devices: \`rmm_get_device_health({ device: "${firstOffline?.hostname}", site: "${site}" })\``
-      );
-    }
-
-    if (devicesWithAlerts.length > 0) {
-      const topDevice = devices.reduce((prev, curr) => {
-        const prevCount = prev.uid ? alertCounts.get(prev.uid) ?? 0 : 0;
-        const currCount = curr.uid ? alertCounts.get(curr.uid) ?? 0 : 0;
-        return currCount > prevCount ? curr : prev;
-      });
-      lines.push(
-        `- Check device with most alerts: \`rmm_get_device_health({ device: "${topDevice.hostname}", site: "${site}" })\``
-      );
-    }
-
-    if (devices.length > 10) {
-      lines.push(`- Review alert overview: \`rmm_get_site_alerts({ site: "${site}" })\``);
-    }
-
-    return {
-      content: [{ type: 'text', text: lines.join('\n') }],
-    };
-  } catch (error) {
-    return errorResult(
-      `Failed to list site devices: ${error instanceof Error ? error.message : String(error)}`
-    );
+    return successResponse({
+      data,
+      count: data.length,
+    });
+  } catch (err) {
+    return errorResponse(mapApiError(err));
   }
 }

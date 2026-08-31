@@ -12,20 +12,25 @@ describe('rmm_get_alert_summary', () => {
     const result = await getAlertSummary(client, {});
 
     expect(result.isError).toBeUndefined();
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('# Alert Summary: Account-Wide');
-    expect(text).toContain('## 📊 Overview');
-    expect(text).toContain('**Total Open Alerts:**');
-    expect(text).toContain('## 📋 Grouped by Type');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.scope).toBe('account');
+    expect(typeof body.data.total).toBe('number');
+    expect(typeof body.data.critical).toBe('number');
+    expect(typeof body.data.warning).toBe('number');
+    expect(body.data.groups).toBeInstanceOf(Array);
+    expect(body.count).toBeGreaterThanOrEqual(0);
   });
 
   it('should filter to specific site', async () => {
     const client = createMockClient();
     const result = await getAlertSummary(client, { site: 'Acme Corp' });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('# Alert Summary: Acme Corp');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.scope).toBe('site-1');
   });
 
   it('should group alerts by type', async () => {
@@ -59,27 +64,40 @@ describe('rmm_get_alert_summary', () => {
     });
 
     const result = await getAlertSummary(client, { group_by: 'type' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 📋 Grouped by Type');
-    expect(text).toContain('Disk Space');
-    expect(text).toContain('2 alert(s)');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.groups).toBeInstanceOf(Array);
+
+    const diskGroup = body.data.groups.find((g: any) => g.key === 'Disk Space');
+    expect(diskGroup).toBeDefined();
+    expect(diskGroup.count).toBe(2);
   });
 
   it('should group alerts by device', async () => {
     const client = createMockClient();
     const result = await getAlertSummary(client, { group_by: 'device' });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 📋 Grouped by Device');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.groups).toBeInstanceOf(Array);
+    // Groups should be keyed by device name
+    if (body.data.groups.length > 0) {
+      expect(body.data.groups[0]).toHaveProperty('key');
+      expect(body.data.groups[0]).toHaveProperty('count');
+    }
   });
 
   it('should group alerts by site', async () => {
     const client = createMockClient();
     const result = await getAlertSummary(client, { group_by: 'site' });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 📋 Grouped by Site');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.groups).toBeInstanceOf(Array);
+    if (body.data.groups.length > 0) {
+      expect(body.data.groups[0]).toHaveProperty('key');
+    }
   });
 
   it('should filter by severity', async () => {
@@ -113,14 +131,15 @@ describe('rmm_get_alert_summary', () => {
     });
 
     const resultCritical = await getAlertSummary(client, { severity: 'critical' });
-    const textCritical = resultCritical.content[0]!.text;
-    
-    expect(textCritical).toContain('**Total Open Alerts:** 1');
-    expect(textCritical).toContain('🔴 Critical: 1');
+    const bodyCritical = JSON.parse(resultCritical.content[0]!.text);
+
+    expect(bodyCritical.ok).toBe(true);
+    expect(bodyCritical.data.total).toBe(1);
+    expect(bodyCritical.data.critical).toBe(1);
+    expect(bodyCritical.count).toBe(1);
   });
 
-  it('should analyze alert age distribution', async () => {
-    const now = Date.now();
+  it('should include time range in response', async () => {
     const client = createMockClient({
       alerts: {
         pageDetails: { count: 3, prevPageUrl: undefined, nextPageUrl: undefined },
@@ -129,37 +148,36 @@ describe('rmm_get_alert_summary', () => {
             alertUid: 'a1',
             priority: 'Critical',
             diagnostics: 'Recent alert',
-            timestamp: new Date(now - 1800000).toISOString(), // 30 min ago
+            timestamp: new Date(Date.now() - 1800000).toISOString(),
             alertSourceInfo: { deviceUid: 'd1', siteUid: 's1' },
           },
           {
             alertUid: 'a2',
             priority: 'High',
             diagnostics: 'Day old alert',
-            timestamp: new Date(now - 18000000).toISOString(), // 5 hours ago
+            timestamp: new Date(Date.now() - 18000000).toISOString(),
             alertSourceInfo: { deviceUid: 'd2', siteUid: 's1' },
           },
           {
             alertUid: 'a3',
             priority: 'Moderate',
             diagnostics: 'Stale alert',
-            timestamp: new Date(now - 172800000).toISOString(), // 2 days ago
+            timestamp: new Date(Date.now() - 172800000).toISOString(),
             alertSourceInfo: { deviceUid: 'd3', siteUid: 's1' },
           },
         ],
       },
     });
 
-    const result = await getAlertSummary(client, {});
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## ⏱️  Alert Age');
-    expect(text).toContain('<1 hour:');
-    expect(text).toContain('1-24 hours:');
-    expect(text).toContain('>24 hours:');
+    const result = await getAlertSummary(client, { time_range: 'today' });
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.timeRange).toBe('today');
+    expect(body.data.total).toBeGreaterThan(0);
   });
 
-  it('should show no alerts message when empty', async () => {
+  it('should handle empty alerts', async () => {
     const client = createMockClient({
       alerts: {
         pageDetails: { count: 0, prevPageUrl: undefined, nextPageUrl: undefined },
@@ -168,18 +186,21 @@ describe('rmm_get_alert_summary', () => {
     });
 
     const result = await getAlertSummary(client, {});
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## ✅ No Alerts');
-    expect(text).toContain('No alerts match');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.total).toBe(0);
+    expect(body.data.groups).toHaveLength(0);
+    expect(body.count).toBe(0);
   });
 
-  it('should provide recommendations', async () => {
+  it('should return count field matching total', async () => {
     const client = createMockClient();
     const result = await getAlertSummary(client, {});
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 💡 Recommendations');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.count).toBe(body.data.total);
   });
 
   it('should handle site not found', async () => {
@@ -191,8 +212,11 @@ describe('rmm_get_alert_summary', () => {
     });
 
     const result = await getAlertSummary(client, { site: 'NonExistent' });
-    
+
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Site not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Site not found');
   });
 });

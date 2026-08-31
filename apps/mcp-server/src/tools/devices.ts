@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, handleVoidResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
+import { normalizePagination } from '../utils/pagination.js';
+import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, extractPageMeta, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -14,51 +14,9 @@ export async function getDevice(client: DattoClient, args: { deviceUid: string }
       },
     });
     const data = handleResponse<T.Device>(response);
-
-    const status = data.online ? 'Online' : 'Offline';
-    const lines = [
-      `# Device: ${data.hostname ?? 'Unknown'}`,
-      '',
-      `**UID:** ${data.uid}`,
-      `**ID:** ${data.id}`,
-      `**Status:** ${status}`,
-      '',
-      '## Basic Information',
-      `- **Site:** ${data.siteName ?? 'N/A'} (${data.siteUid ?? 'N/A'})`,
-      `- **Device Type:** ${data.deviceType?.type ?? 'N/A'}`,
-      `- **Device Class:** ${data.deviceClass ?? 'N/A'}`,
-      '',
-      '## System Information',
-      `- **Operating System:** ${data.operatingSystem ?? 'N/A'}`,
-      `- **Domain:** ${data.domain ?? 'N/A'}`,
-      `- **Description:** ${data.description ?? 'N/A'}`,
-      '',
-      '## Status',
-      `- **Last Seen:** ${data.lastSeen ?? 'N/A'}`,
-      `- **Last Audit:** ${data.lastAuditDate ?? 'N/A'}`,
-      `- **Last Reboot:** ${data.lastReboot ?? 'N/A'}`,
-    ];
-
-    if (data.intIpAddress || data.extIpAddress) {
-      lines.push('');
-      lines.push('## Network');
-      lines.push(`- **Internal IP:** ${data.intIpAddress ?? 'N/A'}`);
-      lines.push(`- **External IP:** ${data.extIpAddress ?? 'N/A'}`);
-    }
-
-    if (data.warrantyDate) {
-      lines.push('');
-      lines.push(`**Warranty Date:** ${data.warrantyDate}`);
-    }
-
-    if (data.portalUrl) {
-      lines.push('');
-      lines.push(`**Portal URL:** ${data.portalUrl}`);
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching device: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -73,22 +31,9 @@ export async function getDeviceById(client: DattoClient, args: { deviceId: numbe
       },
     });
     const data = handleResponse<T.Device>(response);
-
-    const status = data.online ? 'Online' : 'Offline';
-    const lines = [
-      `# Device: ${data.hostname ?? 'Unknown'}`,
-      '',
-      `**UID:** ${data.uid}`,
-      `**ID:** ${data.id}`,
-      `**Status:** ${status}`,
-      `**Site:** ${data.siteName ?? 'N/A'}`,
-      `**OS:** ${data.operatingSystem ?? 'N/A'}`,
-      `**Type:** ${data.deviceType?.type ?? 'N/A'}`,
-    ];
-
-    return successResultWithMetadata(lines.join('\n'));
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching device: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -103,31 +48,9 @@ export async function getDeviceByMac(client: DattoClient, args: { macAddress: st
       },
     });
     const data = handleResponse<T.Device[]>(response);
-
-    if (data.length === 0) {
-      return successResult('No devices found with this MAC address');
-    }
-
-    const lines = [
-      `# Devices with MAC ${args.macAddress}`,
-      '',
-      `Found ${data.length} device(s)`,
-      '',
-    ];
-
-    for (const device of data) {
-      const status = device.online ? 'Online' : 'Offline';
-      lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **Device UID:** \`${device.uid}\` _(use with rmm_get_device)_`);
-      lines.push(`- **Status:** ${status}`);
-      lines.push(`- **Site:** ${device.siteName ?? 'N/A'}`);
-      lines.push(`- **OS:** ${device.operatingSystem ?? 'N/A'}`);
-      lines.push('');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    return successResponse({ data, count: data.length, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching device: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -151,32 +74,11 @@ export async function listDeviceOpenAlerts(
         },
       },
     });
-    const data = handleResponse<T.AlertsPage>(response);
-
-    if (!data.alerts || data.alerts.length === 0) {
-      return successResult('No open alerts for this device');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Device Open Alerts (${pageInfo.count} total)`,
-      '',
-    ];
-
-    for (const alert of data.alerts) {
-      lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with rmm_get_alert or rmm_resolve_alert)_`);
-      lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
-      lines.push(`- **Created:** ${alert.timestamp ?? 'N/A'}`);
-      if (alert.diagnostics) {
-        lines.push(`- **Diagnostics:** ${alert.diagnostics}`);
-      }
-      lines.push('');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.AlertsPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing device alerts: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -200,28 +102,11 @@ export async function listDeviceResolvedAlerts(
         },
       },
     });
-    const data = handleResponse<T.AlertsPage>(response);
-
-    if (!data.alerts || data.alerts.length === 0) {
-      return successResult('No resolved alerts for this device');
-    }
-
-    const lines = [
-      '# Device Resolved Alerts',
-      '',
-    ];
-
-    for (const alert of data.alerts) {
-      lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Alert UID:** \`${alert.alertUid}\` _(use with rmm_get_alert)_`);
-      lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
-      lines.push(`- **Resolved:** ${alert.resolvedOn ?? 'N/A'}`);
-      lines.push('');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.AlertsPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing device resolved alerts: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -242,10 +127,9 @@ export async function moveDevice(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Device ${args.deviceUid} moved to site ${args.siteUid} successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error moving device: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -275,18 +159,9 @@ export async function createQuickJob(
       },
     });
     const data = handleResponse<T.CreateQuickJobResponse>(response);
-
-    const lines = [
-      '# Quick Job Created',
-      '',
-      `**Job Name:** ${args.jobName}`,
-      `**Job UID:** ${data.job?.uid ?? 'N/A'}`,
-      `**Status:** ${data.job?.status ?? 'N/A'}`,
-    ];
-
-    return successResult(lines.join('\n'));
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error creating quick job: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -339,10 +214,9 @@ export async function setDeviceUdf(
       body: udfFields,
     });
     handleVoidResponse(response);
-
-    return successResult(`Device UDF fields updated successfully for ${deviceUid}`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error setting device UDF: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -363,10 +237,8 @@ export async function setDeviceWarranty(
       },
     });
     handleVoidResponse(response);
-
-    const dateDisplay = args.warrantyDate ?? 'cleared';
-    return successResult(`Device warranty date ${dateDisplay} for ${args.deviceUid}`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error setting device warranty: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }

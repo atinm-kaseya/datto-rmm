@@ -17,12 +17,14 @@ describe('rmm_run_site_component', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('# Component Execution Plan');
-    expect(text).toContain('**Site:** Acme Corp');
-    expect(text).toContain('**Component:** disk-cleanup');
-    expect(text).toContain('## 🔍 Dry Run Mode');
-    expect(text).toContain('No jobs will be created');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.dryRun).toBe(true);
+    expect(body.data.site).toBeDefined();
+    expect(body.data.component).toBe('disk-cleanup');
+    expect(body.data.targetDevices).toBeInstanceOf(Array);
+    expect(body.data.targetDevices.length).toBe(1);
+    expect(body.data.targetDevices[0].hostname).toBe('web-server-01');
   });
 
   it('should handle multiple devices', async () => {
@@ -65,11 +67,15 @@ describe('rmm_run_site_component', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**Devices:** 3 devices');
-    expect(text).toContain('server-01');
-    expect(text).toContain('server-02');
-    expect(text).toContain('server-03');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.dryRun).toBe(true);
+    expect(body.data.targetDevices).toHaveLength(3);
+
+    const hostnames = body.data.targetDevices.map((d: any) => d.hostname);
+    expect(hostnames).toContain('server-01');
+    expect(hostnames).toContain('server-02');
+    expect(hostnames).toContain('server-03');
   });
 
   it('should handle "all" devices selection', async () => {
@@ -82,9 +88,11 @@ describe('rmm_run_site_component', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**Devices:**');
-    expect(text).toContain('device'); // Should list the devices
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.dryRun).toBe(true);
+    expect(body.data.targetDevices).toBeInstanceOf(Array);
+    expect(body.data.targetDevices.length).toBeGreaterThan(0);
   });
 
   it('should include component variables', async () => {
@@ -101,10 +109,11 @@ describe('rmm_run_site_component', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('**Variables:**');
-    expect(text).toContain('scriptPath: /scripts/cleanup.ps1');
-    expect(text).toContain('timeout: 300');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.variables).toBeDefined();
+    expect(body.data.variables.scriptPath).toBe('/scripts/cleanup.ps1');
+    expect(body.data.variables.timeout).toBe('300');
   });
 
   it('should handle device not found', async () => {
@@ -118,10 +127,13 @@ describe('rmm_run_site_component', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Device "nonexistent-device" not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('nonexistent-device');
   });
 
-  it('should mark offline devices', async () => {
+  it('should mark offline devices in target device list', async () => {
     const client = createMockClient({
       siteDevices: {
         pageDetails: { count: 2, prevPageUrl: undefined, nextPageUrl: undefined },
@@ -153,10 +165,15 @@ describe('rmm_run_site_component', () => {
       dry_run: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('offline, job will queue');
-    expect(text).toContain('🔴 offline-server');
-    expect(text).toContain('🟢 online-server');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.targetDevices).toHaveLength(2);
+
+    const onlineDevice = body.data.targetDevices.find((d: any) => d.hostname === 'online-server');
+    const offlineDevice = body.data.targetDevices.find((d: any) => d.hostname === 'offline-server');
+
+    expect(onlineDevice.online).toBe(true);
+    expect(offlineDevice.online).toBe(false);
   });
 
   it('should handle site not found', async () => {
@@ -175,10 +192,13 @@ describe('rmm_run_site_component', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Site not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Site not found');
   });
 
-  it('should simulate job creation in live mode', async () => {
+  it('should create jobs in live mode', async () => {
     const client = createMockClient();
 
     const result = await runSiteComponent(client, {
@@ -188,9 +208,12 @@ describe('rmm_run_site_component', () => {
       dry_run: false,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## ⚙️ Execution Status');
-    expect(text).toContain('job');
-    expect(text).toContain('created');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.dryRun).toBe(false);
+    expect(body.data.jobs).toBeInstanceOf(Array);
+    expect(body.data.jobs.length).toBe(1);
+    expect(body.data.jobs[0]).toHaveProperty('deviceUid');
+    expect(body.data.jobs[0]).toHaveProperty('jobUid');
   });
 });

@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, errorResult, successResult, successResultWithMetadata, type ToolResult } from '../utils/response.js';
+import { normalizePagination } from '../utils/pagination.js';
+import { handleResponse, successResponse, errorResponse, mapApiError, extractPageMeta, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -21,30 +21,11 @@ export async function listDefaultFilters(
         },
       },
     });
-    const data = handleResponse<T.FiltersPage>(response);
-
-    if (!data.filters || data.filters.length === 0) {
-      return successResult('No default filters found');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Default Device Filters (${pageInfo.count} total)`,
-      '',
-    ];
-
-    for (const filter of data.filters) {
-      lines.push(`## ${filter.name ?? 'Unknown'}`);
-      lines.push(`- **Filter ID:** \`${filter.id}\` _(use with list-devices filterId parameter)_`);
-      if (filter.description) {
-        lines.push(`- **Description:** ${filter.description}`);
-      }
-      lines.push('');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.FiltersPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.filters ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing default filters: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -66,29 +47,10 @@ export async function listCustomFilters(
         },
       },
     });
-    const data = handleResponse<T.FiltersPage>(response);
-
-    if (!data.filters || data.filters.length === 0) {
-      return successResult('No custom filters found');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Custom Device Filters (${pageInfo.count} total)`,
-      '',
-    ];
-
-    for (const filter of data.filters) {
-      lines.push(`## ${filter.name ?? 'Unknown'}`);
-      lines.push(`- **Filter ID:** \`${filter.id}\` _(use with list-devices filterId parameter)_`);
-      if (filter.description) {
-        lines.push(`- **Description:** ${filter.description}`);
-      }
-      lines.push('');
-    }
-
-    return successResultWithMetadata(lines.join('\n'));
+    const page = handleResponse<T.FiltersPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.filters ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing custom filters: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }

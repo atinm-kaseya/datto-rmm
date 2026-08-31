@@ -11,10 +11,13 @@ describe('rmm_list_site_devices', () => {
     const client = createMockClient();
     const result = await listSiteDevices(client, { site: 'Acme Corp' });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('# Devices: Acme Corp');
-    expect(text).toContain('web-server-01');
-    expect(text).toContain('db-server-01');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeInstanceOf(Array);
+
+    const hostnames = body.data.map((d: any) => d.hostname);
+    expect(hostnames).toContain('web-server-01');
+    expect(hostnames).toContain('db-server-01');
   });
 
   it('should filter devices by online status', async () => {
@@ -47,18 +50,22 @@ describe('rmm_list_site_devices', () => {
       status: 'online',
     });
 
-    const textOnline = resultOnline.content[0]!.text;
-    expect(textOnline).toContain('online-server');
-    expect(textOnline).not.toContain('offline-server');
+    const bodyOnline = JSON.parse(resultOnline.content[0]!.text);
+    expect(bodyOnline.ok).toBe(true);
+    const onlineHostnames = bodyOnline.data.map((d: any) => d.hostname);
+    expect(onlineHostnames).toContain('online-server');
+    expect(onlineHostnames).not.toContain('offline-server');
 
     const resultOffline = await listSiteDevices(client, {
       site: 'Acme Corp',
       status: 'offline',
     });
 
-    const textOffline = resultOffline.content[0]!.text;
-    expect(textOffline).toContain('offline-server');
-    expect(textOffline).not.toContain('online-server');
+    const bodyOffline = JSON.parse(resultOffline.content[0]!.text);
+    expect(bodyOffline.ok).toBe(true);
+    const offlineHostnames = bodyOffline.data.map((d: any) => d.hostname);
+    expect(offlineHostnames).toContain('offline-server');
+    expect(offlineHostnames).not.toContain('online-server');
   });
 
   it('should filter devices by type', async () => {
@@ -91,9 +98,11 @@ describe('rmm_list_site_devices', () => {
       type: 'server',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('server-01');
-    expect(text).not.toContain('workstation-01');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    const hostnames = body.data.map((d: any) => d.hostname);
+    expect(hostnames).toContain('server-01');
+    expect(hostnames).not.toContain('workstation-01');
   });
 
   it('should filter devices with alerts', async () => {
@@ -142,10 +151,14 @@ describe('rmm_list_site_devices', () => {
       has_alerts: true,
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('problem-server');
-    expect(text).not.toContain('healthy-server');
-    expect(text).toContain('1 open alert');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    const hostnames = body.data.map((d: any) => d.hostname);
+    expect(hostnames).toContain('problem-server');
+    expect(hostnames).not.toContain('healthy-server');
+    // device-1 has 1 alert
+    const problemDevice = body.data.find((d: any) => d.hostname === 'problem-server');
+    expect(problemDevice.alertCount).toBe(1);
   });
 
   it('should sort devices by name', async () => {
@@ -155,7 +168,7 @@ describe('rmm_list_site_devices', () => {
         devices: [
           {
             uid: 'device-3',
-hostname: 'zebra-server',
+            hostname: 'zebra-server',
             siteName: 'Test Site',
             siteUid: 'site-1',
             online: true,
@@ -186,10 +199,13 @@ hostname: 'zebra-server',
       sort_by: 'name',
     });
 
-    const text = result.content[0]!.text;
-    const alphaIndex = text.indexOf('alpha-server');
-    const betaIndex = text.indexOf('beta-server');
-    const zebraIndex = text.indexOf('zebra-server');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+
+    const hostnames = body.data.map((d: any) => d.hostname);
+    const alphaIndex = hostnames.indexOf('alpha-server');
+    const betaIndex = hostnames.indexOf('beta-server');
+    const zebraIndex = hostnames.indexOf('zebra-server');
 
     expect(alphaIndex).toBeLessThan(betaIndex);
     expect(betaIndex).toBeLessThan(zebraIndex);
@@ -255,13 +271,19 @@ hostname: 'zebra-server',
       has_alerts: true,
     });
 
-    const text = result.content[0]!.text;
-    const manyIndex = text.indexOf('server-with-many-alerts');
-    const fewIndex = text.indexOf('server-with-few-alerts');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+
+    const hostnames = body.data.map((d: any) => d.hostname);
+    const manyIndex = hostnames.indexOf('server-with-many-alerts');
+    const fewIndex = hostnames.indexOf('server-with-few-alerts');
 
     expect(manyIndex).toBeLessThan(fewIndex);
-    expect(text).toContain('3 open alerts');
-    expect(text).toContain('1 open alert');
+
+    const manyDevice = body.data.find((d: any) => d.hostname === 'server-with-many-alerts');
+    const fewDevice = body.data.find((d: any) => d.hostname === 'server-with-few-alerts');
+    expect(manyDevice.alertCount).toBe(3);
+    expect(fewDevice.alertCount).toBe(1);
   });
 
   it('should handle site not found', async () => {
@@ -277,7 +299,10 @@ hostname: 'zebra-server',
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Site not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Site not found');
   });
 
   it('should handle no devices matching filters', async () => {
@@ -302,16 +327,26 @@ hostname: 'zebra-server',
       status: 'offline',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('No devices found matching');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data).toHaveLength(0);
+    expect(body.count).toBe(0);
   });
 
-  it('should provide recommendations', async () => {
+  it('should return device structure fields', async () => {
     const client = createMockClient();
 
     const result = await listSiteDevices(client, { site: 'Acme Corp' });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 💡 Next Steps');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    if (body.data.length > 0) {
+      const device = body.data[0];
+      expect(device).toHaveProperty('hostname');
+      expect(device).toHaveProperty('uid');
+      expect(device).toHaveProperty('online');
+      expect(device).toHaveProperty('deviceType');
+      expect(device).toHaveProperty('alertCount');
+    }
   });
 });

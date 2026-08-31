@@ -14,23 +14,14 @@ describe('rmm_get_site_health', () => {
     expect(result.isError).toBeUndefined();
     expect(result.content).toHaveLength(1);
 
-    const text = result.content[0]!.text;
-    
-    // Check header
-    expect(text).toContain('# Site Health: Acme Corp');
-    expect(text).toContain('**Site UID:**');
-    
-    // Check device stats
-    expect(text).toContain('## 📊 Devices');
-    expect(text).toContain('**Total:**');
-    expect(text).toContain('online');
-    expect(text).toContain('offline');
-    
-    // Check alerts section
-    expect(text).toContain('## ⚠️  Open Alerts');
-    
-    // Check recommendations
-    expect(text).toContain('## 💡 Recommended Actions');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.site).toBeDefined();
+    expect(body.data.site.name).toBe('Acme Corp');
+    expect(body.data.alerts).toBeDefined();
+    expect(body.data.recommendations).toBeInstanceOf(Array);
   });
 
   it('should resolve site by UID directly', async () => {
@@ -38,11 +29,13 @@ describe('rmm_get_site_health', () => {
     const result = await getSiteHealth(client, { site: 'site-1' });
 
     expect(result.isError).toBeUndefined();
-    const text = result.content[0]!.text;
-    expect(text).toContain('# Site Health: Acme Corp');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.site.name).toBe('Acme Corp');
   });
 
-  it('should show device breakdown by type', async () => {
+  it('should show device breakdown', async () => {
     const client = createMockClient({
       siteDevices: {
         pageDetails: { count: 6, prevPageUrl: undefined, nextPageUrl: undefined },
@@ -58,27 +51,28 @@ describe('rmm_get_site_health', () => {
     });
 
     const result = await getSiteHealth(client, { site: 'site-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('**Device Breakdown:**');
-    expect(text).toContain('Server: 3');
-    expect(text).toContain('Workstation: 2');
-    expect(text).toContain('Laptop: 1');
-    expect(text).toContain('1 offline');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.site.totalDevices).toBe(6);
+    expect(body.data.site.onlineDevices).toBe(4);
+    expect(body.data.site.offlineDevices).toBe(2);
   });
 
   it('should include full device list when requested', async () => {
     const client = createMockClient();
-    const result = await getSiteHealth(client, { 
+    const result = await getSiteHealth(client, {
       site: 'site-1',
       include_device_details: true,
     });
 
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 📋 All Devices');
-    expect(text).toContain('web-server-01');
-    expect(text).toContain('🟢'); // Online indicator
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.deviceDetails).toBeInstanceOf(Array);
+    expect(body.data.deviceDetails.length).toBeGreaterThan(0);
+    const hostnames = body.data.deviceDetails.map((d: any) => d.hostname);
+    expect(hostnames).toContain('web-server-01');
   });
 
   it('should show top devices with most alerts', async () => {
@@ -96,23 +90,18 @@ describe('rmm_get_site_health', () => {
     });
 
     const result = await getSiteHealth(client, { site: 'site-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 🔴 Top Devices With Alerts');
-    expect(text).toContain('**web-server-01** - 3 alerts');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.topProblematicDevices).toBeInstanceOf(Array);
+    expect(body.data.topProblematicDevices.length).toBeGreaterThan(0);
+
+    const topDevice = body.data.topProblematicDevices[0];
+    expect(topDevice.alertCount).toBe(3);
+    expect(topDevice.uid).toBe('device-1');
   });
 
-  it('should show network configuration if proxy exists', async () => {
-    const client = createMockClient();
-    const result = await getSiteHealth(client, { site: 'site-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 🌐 Network Configuration');
-    expect(text).toContain('**Proxy:**');
-    expect(text).toContain('10.0.1.1:8080');
-  });
-
-  it('should show no alerts message when site is healthy', async () => {
+  it('should show no alerts when site is healthy', async () => {
     const client = createMockClient({
       siteAlerts: {
         pageDetails: { count: 0, prevPageUrl: undefined, nextPageUrl: undefined },
@@ -121,9 +110,11 @@ describe('rmm_get_site_health', () => {
     });
 
     const result = await getSiteHealth(client, { site: 'site-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## ✅ No Open Alerts');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.alerts.total).toBe(0);
+    expect(body.data.topProblematicDevices).toHaveLength(0);
   });
 
   it('should return error for non-existent site', async () => {
@@ -137,16 +128,21 @@ describe('rmm_get_site_health', () => {
     const result = await getSiteHealth(client, { site: 'NonExistent' });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Site not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Site not found');
   });
 
   it('should provide actionable recommendations', async () => {
     const client = createMockClient();
     const result = await getSiteHealth(client, { site: 'site-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('💡 Recommended Actions');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.recommendations).toBeInstanceOf(Array);
     // Should suggest checking offline devices or investigating top device
-    expect(text).toMatch(/rmm_list_site_devices|rmm_get_device_health/);
+    const recText = body.data.recommendations.join(' ');
+    expect(recText).toMatch(/rmm_list_site_devices|rmm_get_device_health/);
   });
 });

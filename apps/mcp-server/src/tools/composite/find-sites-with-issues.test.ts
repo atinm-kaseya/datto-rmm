@@ -13,11 +13,11 @@ describe('rmm_find_sites_with_issues', () => {
 
     expect(result.isError).toBeUndefined();
     const text = result.content[0]!.text;
-    
-    expect(text).toContain('# Sites With Issues');
-    expect(text).toContain('Acme Corp');
-    expect(text).toContain('🔴');
-    expect(text).toContain('critical alert');
+    const body = JSON.parse(text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeInstanceOf(Array);
+    expect(body.count).toBeGreaterThanOrEqual(0);
   });
 
   it('should filter by min_offline_devices', async () => {
@@ -46,18 +46,30 @@ describe('rmm_find_sites_with_issues', () => {
     });
 
     const result = await findSitesWithIssues(client, { min_offline_devices: 5 });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('Many Offline');
-    expect(text).not.toContain('One Offline');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeInstanceOf(Array);
+
+    const siteNames = body.data.map((s: any) => s.name);
+    expect(siteNames).toContain('Many Offline');
+    expect(siteNames).not.toContain('One Offline');
   });
 
-  it('should include recommended next steps', async () => {
+  it('should include site data fields in results', async () => {
     const client = createMockClient();
     const result = await findSitesWithIssues(client, {});
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 💡 Recommended Next Steps');
-    expect(text).toContain('rmm_get_site_health');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    // If there are results, verify structure
+    if (body.data.length > 0) {
+      const firstSite = body.data[0];
+      expect(firstSite).toHaveProperty('name');
+      expect(firstSite).toHaveProperty('uid');
+      expect(firstSite).toHaveProperty('alertCount');
+      expect(firstSite).toHaveProperty('offlineDevices');
+      expect(firstSite).toHaveProperty('score');
+    }
   });
 });

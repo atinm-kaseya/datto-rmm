@@ -1,158 +1,131 @@
-import { formatError } from './formatting.js';
 import { logger } from './logger.js';
 import type { Platform } from 'datto-rmm-api';
 
-/**
- * API call metadata to include in responses.
- */
-export interface ApiCallMetadata {
-  /** Platform being queried */
-  platform?: Platform;
-  /** HTTP method and path */
-  endpoint?: string;
-  /** Query parameters summary */
-  params?: Record<string, any>;
+// ─── Error codes ─────────────────────────────────────────────────────────────
+
+export type ErrorCode =
+  | 'entity_not_found'
+  | 'validation_error'
+  | 'tool_not_loaded'
+  | 'auth_error'
+  | 'rate_limited'
+  | 'permission_denied'
+  | 'duplicate_detected'
+  | 'api_error';
+
+// ─── Response shapes ──────────────────────────────────────────────────────────
+
+export interface McpSuccess<T = unknown> {
+  ok: true;
+  data: T;
+  count?: number;
+  next_page?: string | number | null;
+  _enhanced?: Record<string, unknown>;
 }
 
-let currentPlatform: Platform | undefined;
-let lastApiUrl: string | undefined;
-
-/**
- * Set the current platform for API metadata.
- */
-export function setPlatform(platform: Platform): void {
-  currentPlatform = platform;
+export interface McpError {
+  ok: false;
+  error: ErrorCode;
+  detail: string;
+  code: number;
 }
 
-/**
- * Format API call metadata as a header for responses.
- */
-function formatApiMetadata(url: string): string {
-  if (!currentPlatform) {
-    return '';
-  }
+// ─── MCP protocol wrapper (unchanged — required by the protocol) ──────────────
 
-  const lines: string[] = [];
-  lines.push(`_Platform: ${currentPlatform}_`);
-
-  // Extract the API path and query from URL
-  try {
-    const urlObj = new URL(url);
-    const path = urlObj.pathname.replace('/api', ''); // Remove /api prefix
-    const query = urlObj.search ? urlObj.search.substring(1) : '';
-    
-    if (query) {
-      lines.push(`_API: ${path}?${query}_`);
-    } else {
-      lines.push(`_API: ${path}_`);
-    }
-  } catch {
-    lines.push(`_API: ${url}_`);
-  }
-
-  lines.push('');
-  return lines.join('\n');
-}
-
-/**
- * Result of a tool execution.
- */
 export interface ToolResult {
   content: Array<{ type: 'text'; text: string }>;
   isError?: boolean;
 }
 
-/**
- * Create an error result.
- */
-export function errorResult(message: string): ToolResult {
-  logger.error(`Tool error response to LLM: ${message}`);
-  return {
-    content: [{ type: 'text', text: message }],
-    isError: true,
-  };
+// ─── Response builders ────────────────────────────────────────────────────────
+
+export function successResponse<T>(payload: Omit<McpSuccess<T>, 'ok'>): ToolResult {
+  const body: McpSuccess<T> = { ok: true, ...payload };
+  const text = JSON.stringify(body, null, 2);
+  logger.debug(`Tool response (${text.length} chars)`);
+  return { content: [{ type: 'text', text }] };
 }
 
-/**
- * Create a success result.
- */
-export function successResult(text: string): ToolResult {
-  logger.debug(`Tool response to LLM (${text.length} chars): ${text.substring(0, 200)}...`);
-  return {
-    content: [{ type: 'text', text }],
-  };
+export function errorResponse(payload: Omit<McpError, 'ok'>): ToolResult {
+  const body: McpError = { ok: false, ...payload };
+  const text = JSON.stringify(body, null, 2);
+  logger.error(`Tool error: ${payload.error} — ${payload.detail}`);
+  return { content: [{ type: 'text', text }], isError: true };
 }
 
-/**
- * Create a success result with API metadata header.
- * Automatically uses the last API call's URL if not provided.
- */
-export function successResultWithMetadata(text: string, apiUrl?: string): ToolResult {
-  let fullText = text;
-  
-  const url = apiUrl || lastApiUrl;
-  if (url && currentPlatform) {
-    const metadata = formatApiMetadata(url);
-    fullText = metadata + text;
+// ─── Error mapping ────────────────────────────────────────────────────────────
+
+export function mapApiError(err: unknown): Omit<McpError, 'ok'> {
+  const message = err instanceof Error ? err.message : String(err);
+
+  const statusMatch = message.match(/HTTP (\d+)/);
+  const status = statusMatch ? parseInt(statusMatch[1] ?? '500', 10) : 500;
+
+  if (status === 401) {
+    return { error: 'auth_error', detail: 'Authentication failed. Check API credentials.', code: 401 };
   }
-  
-  logger.info(`Tool response to LLM (${fullText.length} chars)`);
-  logger.debug(`Full tool response:\n${fullText}`);
-  
-  return {
-    content: [{ type: 'text', text: fullText }],
-  };
+  if (status === 403) {
+    return { error: 'permission_denied', detail: message, code: 403 };
+  }
+  if (status === 404) {
+    return { error: 'entity_not_found', detail: message, code: 404 };
+  }
+  if (status === 409) {
+    return { error: 'duplicate_detected', detail: message, code: 409 };
+  }
+  if (status === 429) {
+    return {
+      error: 'rate_limited',
+      detail: 'API rate limit reached. Narrow your query with date ranges or filters and retry.',
+      code: 429,
+    };
+  }
+
+  return { error: 'api_error', detail: message, code: status };
 }
 
-/**
- * Handle API response with proper typing.
- *
- * Note: The Datto RMM OpenAPI spec doesn't define 200 responses properly,
- * so we use type assertion to extract data. In practice, the API does return
- * data on successful responses.
- */
-export function handleResponse<T>(response: { data?: unknown; error?: unknown; response: Response }): T {
-  // Log the API call
+// ─── API response unwrapper (unchanged contract) ──────────────────────────────
+
+let currentPlatform: Platform | undefined;
+
+export function setPlatform(platform: Platform): void {
+  currentPlatform = platform;
+}
+
+export function handleResponse<T>(response: {
+  data?: unknown;
+  error?: unknown;
+  response: Response;
+}): T {
   const url = response.response.url;
   const status = response.response.status;
-  const method = response.response.type || 'GET'; // Response.type isn't the method, need to extract differently
 
-  // Store URL for metadata
-  lastApiUrl = url;
+  logger.info(`API ${status} ${url}`);
 
-  logger.info(`API ${response.response.status} ${response.response.url}`);
-
-  // Check for HTTP errors
   if (!response.response.ok) {
-    const errorInfo = response.error ? formatError(response.error) : `HTTP ${status}`;
-    logger.error(`API Error: ${status} ${url} - ${errorInfo}`);
+    const errorInfo = response.error
+      ? formatError(response.error)
+      : `HTTP ${status}`;
+    logger.error(`API Error: ${status} ${url} — ${errorInfo}`);
     throw new Error(errorInfo);
   }
 
-  // Check for explicit error object
   if (response.error) {
     const errorMsg = formatError(response.error);
-    logger.error(`API Error: ${url} - ${errorMsg}`);
+    logger.error(`API Error: ${url} — ${errorMsg}`);
     throw new Error(errorMsg);
   }
 
-  // Cast data to expected type
-  // The OpenAPI spec is missing 200 responses, but the API returns data
   const data = response.data as T | undefined;
   if (data === undefined || data === null) {
-    logger.error(`API Error: ${url} - No data returned`);
+    logger.error(`API Error: ${url} — No data returned`);
     throw new Error('No data returned from API');
   }
 
-  // Log successful response with data summary
-  logger.debug(`API Response data: ${JSON.stringify(data).substring(0, 500)}...`);
-
+  logger.debug(`API response: ${JSON.stringify(data).substring(0, 500)}...`);
   return data;
 }
 
-/**
- * Handle API response for operations that don't return data.
- */
 export function handleVoidResponse(response: { error?: unknown; response: Response }): void {
   const url = response.response.url;
   const status = response.response.status;
@@ -161,15 +134,40 @@ export function handleVoidResponse(response: { error?: unknown; response: Respon
 
   if (!response.response.ok) {
     const errorInfo = response.error ? formatError(response.error) : `HTTP ${status}`;
-    logger.error(`API Error: ${status} ${url} - ${errorInfo}`);
+    logger.error(`API Error: ${status} ${url} — ${errorInfo}`);
     throw new Error(errorInfo);
   }
 
   if (response.error) {
     const errorMsg = formatError(response.error);
-    logger.error(`API Error: ${url} - ${errorMsg}`);
+    logger.error(`API Error: ${url} — ${errorMsg}`);
     throw new Error(errorMsg);
   }
+}
 
-  logger.debug(`API void response successful`);
+function formatError(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    const e = error as Record<string, unknown>;
+    if (typeof e['message'] === 'string') return e['message'];
+    if (typeof e['title'] === 'string') return e['title'];
+    return JSON.stringify(error);
+  }
+  return String(error);
+}
+
+// ─── Pagination helper (used by tool handlers) ────────────────────────────────
+
+export interface PageMeta {
+  count: number;
+  next_page: string | null;
+}
+
+export function extractPageMeta(pageData: {
+  pageDetails?: { count?: number; nextPageUrl?: string | null; } | null;
+}): PageMeta {
+  return {
+    count: pageData.pageDetails?.count ?? 0,
+    next_page: pageData.pageDetails?.nextPageUrl ?? null,
+  };
 }

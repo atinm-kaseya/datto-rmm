@@ -14,13 +14,14 @@ describe('rmm_get_device_health', () => {
     expect(result.isError).toBeUndefined();
     expect(result.content).toHaveLength(1);
 
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('# Device Health:');
-    expect(text).toContain('**Device UID:**');
-    expect(text).toContain('**Site:**');
-    expect(text).toContain('## 🟢 Status:');
-    expect(text).toContain('## 💻 System Information');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.device).toBeDefined();
+    expect(body.data.device.hostname).toBe('web-server-01');
+    expect(body.data.alerts).toBeInstanceOf(Array);
+    expect(body.data.recommendations).toBeInstanceOf(Array);
   });
 
   it('should resolve device by UID directly', async () => {
@@ -28,8 +29,10 @@ describe('rmm_get_device_health', () => {
     const result = await getDeviceHealth(client, { device: 'device-1' });
 
     expect(result.isError).toBeUndefined();
-    const text = result.content[0]!.text;
-    expect(text).toContain('web-server-01');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.device.hostname).toBe('web-server-01');
   });
 
   it('should filter by site when multiple matches', async () => {
@@ -57,34 +60,38 @@ describe('rmm_get_device_health', () => {
       },
     });
 
-    const result = await getDeviceHealth(client, { 
+    const result = await getDeviceHealth(client, {
       device: 'server-01',
       site: 'Acme',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('Acme Corp');
-    expect(text).not.toContain('TechStart');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.device.siteName).toBe('Acme Corp');
   });
 
-  it('should show hardware information when available', async () => {
+  it('should include hardware information when available', async () => {
     const client = createMockClient();
     const result = await getDeviceHealth(client, { device: 'device-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 🔧 Hardware');
-    expect(text).toContain('**CPU:**');
-    expect(text).toContain('**RAM:**');
-    expect(text).toContain('**Disks:**');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.auditSummary).toBeDefined();
+    expect(body.data.auditSummary.cpu).toBeDefined();
+    expect(body.data.auditSummary.ram).toBeDefined();
+    expect(body.data.auditSummary.disk).toBeInstanceOf(Array);
   });
 
-  it('should highlight critical disk usage', async () => {
+  it('should report disk usage percentages', async () => {
     const client = createMockClient();
     const result = await getDeviceHealth(client, { device: 'device-1' });
-    const text = result.content[0]!.text;
-    
-    // Check for disk usage warnings
-    expect(text).toMatch(/\d+\.\d+%/); // Percentage format
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.auditSummary.disk.length).toBeGreaterThan(0);
+    const disk = body.data.auditSummary.disk[0];
+    expect(disk).toHaveProperty('usedPercent');
+    expect(typeof disk.usedPercent).toBe('number');
   });
 
   it('should show open alerts with severity', async () => {
@@ -109,30 +116,36 @@ describe('rmm_get_device_health', () => {
     });
 
     const result = await getDeviceHealth(client, { device: 'device-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## ⚠️  Open Alerts (2)');
-    expect(text).toContain('**Critical');
-    expect(text).toContain('Disk Space Critical');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.alerts).toHaveLength(2);
+
+    const criticalAlert = body.data.alerts.find((a: any) => a.priority === 'Critical');
+    expect(criticalAlert).toBeDefined();
+    expect(criticalAlert.diagnostics).toBe('Disk Space Critical');
   });
 
   it('should include job history when requested', async () => {
     const client = createMockClient();
-    const result = await getDeviceHealth(client, { 
+    const result = await getDeviceHealth(client, {
       device: 'device-1',
       include_history: true,
     });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 📋 Recent Jobs');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.recentJobs).toBeInstanceOf(Array);
+    expect(body.data.recentJobs.length).toBeGreaterThan(0);
   });
 
   it('should provide actionable recommendations', async () => {
     const client = createMockClient();
     const result = await getDeviceHealth(client, { device: 'device-1' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## 💡 Recommended Actions');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.recommendations).toBeInstanceOf(Array);
   });
 
   it('should handle offline devices', async () => {
@@ -146,7 +159,7 @@ describe('rmm_get_device_health', () => {
           siteUid: 'site-1',
           online: false,
           deviceType: { type: 'Server' },
-          lastSeen: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+          lastSeen: new Date(Date.now() - 86400000).toISOString(),
         }],
       },
       device: {
@@ -156,15 +169,16 @@ describe('rmm_get_device_health', () => {
         siteUid: 'site-1',
         online: false,
         deviceType: { type: 'Server' },
-        lastSeen: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        lastSeen: new Date(Date.now() - 86400000).toISOString(),
       },
     });
 
     const result = await getDeviceHealth(client, { device: 'offline-server' });
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('🔴 Status: Offline');
-    expect(text).toContain('🔴 **Device is offline**');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.device.online).toBe(false);
+    expect(body.data.device.hostname).toBe('offline-server');
   });
 
   it('should handle non-existent device', async () => {
@@ -176,8 +190,11 @@ describe('rmm_get_device_health', () => {
     });
 
     const result = await getDeviceHealth(client, { device: 'nonexistent' });
-    
+
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Device not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Device not found');
   });
 });

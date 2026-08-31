@@ -15,12 +15,14 @@ describe('rmm_get_account_dashboard', () => {
     expect(result.content).toHaveLength(1);
 
     const text = result.content[0]!.text;
-    
-    // Check main sections exist
-    expect(text).toContain('# Account Dashboard');
-    expect(text).toContain('## 📊 Account Overview');
-    expect(text).toContain('**Devices:**');
-    expect(text).toContain('**Sites:**');
+    const body = JSON.parse(text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.account).toBeDefined();
+    expect(body.data.account.totalDevices).toBeGreaterThanOrEqual(0);
+    expect(body.data.alertSummary).toBeDefined();
+    expect(body.data.recommendations).toBeInstanceOf(Array);
   });
 
   it('should show all clear when no issues', async () => {
@@ -54,10 +56,11 @@ describe('rmm_get_account_dashboard', () => {
     });
 
     const result = await getAccountDashboard(client, {});
-    const text = result.content[0]!.text;
-    
-    expect(text).toContain('## ✅ All Clear');
-    expect(text).toContain('No critical issues detected');
+    const body = JSON.parse(result.content[0]!.text);
+
+    expect(body.ok).toBe(true);
+    expect(body.data.alertSummary.total).toBe(0);
+    expect(body.data.sitesWithIssues).toHaveLength(0);
   });
 
   it('should rank sites by score', async () => {
@@ -83,5 +86,9 @@ describe('rmm_get_account_dashboard', () => {
 
     const result = await getAccountDashboard(client, {});
     expect(result.isError).toBeUndefined();
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.sitesWithIssues).toBeInstanceOf(Array);
   });
 });

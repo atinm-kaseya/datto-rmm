@@ -1,12 +1,12 @@
 /**
  * Tier 1 Composite Tool: Diagnose Device Issue
- * 
+ *
  * AI-assisted troubleshooting workflow with actionable recommendations.
  * Analyzes device state, recent changes, and provides prioritized action plan.
  */
 
 import type { DattoClient } from 'datto-rmm-api';
-import { handleResponse, errorResult, type ToolResult } from '../../utils/response.js';
+import { handleResponse, successResponse, errorResponse, mapApiError, type ToolResult } from '../../utils/response.js';
 import type * as T from '../../types.js';
 
 export interface DiagnoseDeviceIssueArgs {
@@ -20,15 +20,6 @@ export interface DiagnoseDeviceIssueArgs {
 
 /**
  * Diagnose device issue with AI-friendly recommendations.
- * 
- * Aggregates data from multiple endpoints:
- * - Device details and current state
- * - Open alerts (filtered by relevance to issue)
- * - Hardware audit
- * - Recent job history (successes/failures)
- * - Activity logs (recent changes)
- * 
- * Returns diagnosis with likely causes and action plan.
  */
 export async function diagnoseDeviceIssue(
   client: DattoClient,
@@ -37,7 +28,6 @@ export async function diagnoseDeviceIssue(
   const { device, site, issue } = args;
 
   try {
-    // Step 1: Resolve device
     let deviceUid: string | null = null;
     let resolvedDevice: T.Device | null = null;
 
@@ -77,12 +67,13 @@ export async function diagnoseDeviceIssue(
     }
 
     if (!deviceUid || !resolvedDevice) {
-      return errorResult(
-        `Device not found: "${device}"${site ? ` at site "${site}"` : ''}. Try using rmm_search_devices first.`
-      );
+      return errorResponse({
+        error: 'entity_not_found',
+        detail: `Device not found: "${device}"${site ? ` at site "${site}"` : ''}. Try using rmm_search_devices first.`,
+        code: 404,
+      });
     }
 
-    // Step 2: Gather diagnostic data in parallel
     const [alertsRes, auditRes, jobsRes] = await Promise.all([
       client.GET('/v2/device/{deviceUid}/alerts/open', {
         params: { path: { deviceUid } },
@@ -95,63 +86,50 @@ export async function diagnoseDeviceIssue(
       }),
     ]);
 
-    const alerts = (alertsRes.data as any)?.alerts ?? [];
-    const audit = auditRes.data;
-    const jobs = (jobsRes.data as any)?.jobs ?? [];
+    const alerts: T.Alert[] = (alertsRes.data as any)?.alerts ?? [];
+    const audit: any = auditRes.data;
+    const jobs: any[] = (jobsRes.data as any)?.jobs ?? [];
 
-    // Step 3: Build diagnostic report
-    const report = buildDiagnosticReport({
-      device: resolvedDevice,
-      issue,
-      alerts,
-      audit,
-      jobs,
+    const findings = buildFindings(resolvedDevice, issue, alerts, audit, jobs);
+    const recommendations = buildRecommendations(resolvedDevice, issue, alerts, audit, jobs);
+
+    return successResponse({
+      data: {
+        device: {
+          hostname: resolvedDevice.hostname ?? null,
+          uid: deviceUid,
+          siteName: resolvedDevice.siteName ?? null,
+          online: resolvedDevice.online ?? false,
+          os: resolvedDevice.operatingSystem ?? null,
+          lastSeen: resolvedDevice.lastSeen ?? null,
+        },
+        issue,
+        findings,
+        recommendations,
+      },
     });
-
-    return {
-      content: [{ type: 'text', text: report }],
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return errorResult(`Diagnosis failed: ${message}`);
+  } catch (err) {
+    return errorResponse(mapApiError(err));
   }
 }
 
 /**
- * Build diagnostic report with issue analysis and action plan.
+ * Build list of findings from diagnostics data.
  */
-function buildDiagnosticReport(data: {
-  device: T.Device;
-  issue: string;
-  alerts: T.Alert[];
-  audit: any;
-  jobs: any[];
-}): string {
-  const { device, issue, alerts, audit, jobs } = data;
+function buildFindings(
+  device: T.Device,
+  issue: string,
+  alerts: T.Alert[],
+  audit: any,
+  jobs: any[]
+): string[] {
+  const findings: string[] = [];
 
-  const lines: string[] = [];
+  if (!device.online) {
+    findings.push('Device is offline');
+    return findings;
+  }
 
-  // Header
-  lines.push(`# Diagnostic Report: ${device.hostname ?? 'Unknown'}`);
-  lines.push('');
-  lines.push(`**Site:** ${device.siteName ?? 'Unknown'}`);
-  lines.push(`**Issue:** "${issue}"`);
-  lines.push('');
-
-  // Device Status Snapshot
-  const statusIcon = device.online ? '🟢' : '🔴';
-  lines.push(`## ${statusIcon} Current Status`);
-  lines.push('');
-  lines.push(`**Online:** ${device.online ? 'Yes' : 'No'}`);
-  lines.push(`**Last Seen:** ${formatTimestamp(device.lastSeen)}`);
-  lines.push(`**OS:** ${device.operatingSystem ?? 'Unknown'}`);
-  lines.push('');
-
-  // Related Findings
-  lines.push('## 🔍 Related Findings');
-  lines.push('');
-
-  // Filter alerts by relevance to issue
   const relatedKeywords = extractKeywords(issue);
   const relatedAlerts = alerts.filter((a) => {
     const alertText = (a.diagnostics ?? '').toLowerCase();
@@ -160,82 +138,89 @@ function buildDiagnosticReport(data: {
 
   if (relatedAlerts.length > 0) {
     relatedAlerts.slice(0, 5).forEach((alert) => {
-      const icon = alert.priority === 'Critical' ? '🔴' : '⚠️ ';
-      lines.push(`- ${icon} ${alert.diagnostics} _(${formatTimestamp(alert.timestamp)})_`);
+      findings.push(`${alert.priority ?? 'Unknown'} alert: ${alert.diagnostics}`);
     });
   } else if (alerts.length > 0) {
-    lines.push(`_No alerts directly match "${issue}", but device has ${alerts.length} other alert(s)_`);
+    findings.push(`No alerts directly match "${issue}", but device has ${alerts.length} other alert(s)`);
   } else {
-    lines.push('✅ No open alerts found');
+    findings.push('No open alerts found');
   }
-  lines.push('');
 
-  // Hardware insights
   if (audit?.disks) {
     const lowDiskDrives = audit.disks.filter((d: any) => {
       const usedPercent = ((d.capacity - d.freeSpace) / d.capacity) * 100;
       return usedPercent > 80;
     });
-    
-    if (lowDiskDrives.length > 0) {
-      lines.push('**Hardware Concerns:**');
-      lowDiskDrives.forEach((disk: any) => {
-        const usedPercent = ((disk.capacity - disk.freeSpace) / disk.capacity) * 100;
-        lines.push(`- ${disk.volume} drive at ${usedPercent.toFixed(0)}% capacity`);
-      });
-      lines.push('');
+    for (const disk of lowDiskDrives) {
+      const usedPercent = ((disk.capacity - disk.freeSpace) / disk.capacity) * 100;
+      findings.push(`${disk.volume} drive at ${usedPercent.toFixed(0)}% capacity`);
     }
   }
 
-  // Recent Job History
-  if (jobs.length > 0) {
-    lines.push('## 📋 Recent Job History');
-    lines.push('');
-
-    const failed = jobs.filter((j: any) => j.status === 'failed');
-    const succeeded = jobs.filter((j: any) => j.status === 'completed');
-
-    jobs.slice(0, 5).forEach((job: any) => {
-      const icon = job.status === 'completed' ? '✅' : job.status === 'failed' ? '❌' : '⏳';
-      lines.push(`- ${icon} ${job.jobType ?? 'Job'} _(${formatTimestamp(job.startTime)})_`);
-    });
-
-    if (failed.length > 0) {
-      lines.push('');
-      lines.push(`⚠️  ${failed.length} job(s) failed recently`);
-    }
-    lines.push('');
+  const failedJobs = jobs.filter((j: any) => j.status === 'failed');
+  if (failedJobs.length > 0) {
+    findings.push(`${failedJobs.length} recent job failure(s)`);
   }
 
-  // Likely Causes
-  lines.push('## 🎯 Likely Causes');
-  lines.push('');
+  return findings;
+}
 
-  const causes = identifyLikelyCauses(issue, device, alerts, audit, jobs);
-  causes.forEach((cause, idx) => {
-    lines.push(`${idx + 1}. ${cause}`);
-  });
-  lines.push('');
+/**
+ * Build prioritized recommendations.
+ */
+function buildRecommendations(
+  device: T.Device,
+  issue: string,
+  alerts: T.Alert[],
+  audit: any,
+  jobs: any[]
+): Array<{ priority: 'high' | 'medium' | 'low'; action: string }> {
+  const recs: Array<{ priority: 'high' | 'medium' | 'low'; action: string }> = [];
 
-  // Action Plan
-  lines.push('## 📋 Action Plan');
-  lines.push('');
+  if (!device.online) {
+    recs.push({ priority: 'high', action: 'Check network connectivity and verify device is powered on' });
+    recs.push({ priority: 'high', action: 'Use rmm_get_site_health to see if other devices at the site are affected' });
+    recs.push({ priority: 'medium', action: 'Restart Datto RMM agent if device is accessible via other means' });
+    return recs;
+  }
 
-  const actions = generateActionPlan(issue, device, alerts, audit, jobs);
-  actions.forEach((action, idx) => {
-    lines.push(`**Step ${idx + 1}:** ${action}`);
-    lines.push('');
-  });
+  const diskAlerts = alerts.filter((a) => a.diagnostics?.toLowerCase().includes('disk'));
+  if (diskAlerts.length > 0) {
+    recs.push({ priority: 'high', action: 'Free disk space - Run "Disk Cleanup" component' });
+    recs.push({ priority: 'medium', action: 'Clear temporary files and old logs' });
+  }
 
-  // Next Steps
-  lines.push('## 💡 Next Steps');
-  lines.push('');
-  lines.push(`- Use \`rmm_investigate_alert\` on critical alerts for deeper analysis`);
-  lines.push(`- Use \`rmm_get_site_health\` to check if issue affects other devices`);
-  lines.push(`- Consider running relevant components from recommendations above`);
-  lines.push('');
+  const serviceAlerts = alerts.filter((a) => a.diagnostics?.toLowerCase().includes('service'));
+  if (serviceAlerts.length > 0) {
+    recs.push({ priority: 'high', action: 'Restart critical services - Check Windows services or specific application services' });
+  }
 
-  return lines.join('\n');
+  const failedJobs = jobs.filter((j: any) => j.status === 'failed');
+  if (failedJobs.length > 0) {
+    recs.push({ priority: 'medium', action: `Review ${failedJobs.length} failed job(s) - Check job logs for error details` });
+  }
+
+  const lower = issue.toLowerCase();
+  if (lower.includes('slow') || lower.includes('performance')) {
+    recs.push({ priority: 'medium', action: 'Check resource usage - CPU, memory, and disk I/O' });
+    recs.push({ priority: 'medium', action: 'Review running processes for abnormal activity' });
+  }
+
+  if (lower.includes('backup')) {
+    recs.push({ priority: 'high', action: 'Verify backup service is running' });
+    recs.push({ priority: 'medium', action: 'Check available disk space for backup destination' });
+    recs.push({ priority: 'medium', action: 'Review backup job logs for specific errors' });
+  }
+
+  if (recs.length === 0) {
+    recs.push({ priority: 'medium', action: 'Review all open alerts for clues' });
+    recs.push({ priority: 'low', action: 'Check recent job history for failures' });
+    recs.push({ priority: 'low', action: 'Use rmm_investigate_alert on any critical alerts' });
+  }
+
+  recs.push({ priority: 'low', action: 'Use rmm_get_device_health to track progress after taking actions' });
+
+  return recs;
 }
 
 /**
@@ -245,7 +230,6 @@ function extractKeywords(issue: string): string[] {
   const lower = issue.toLowerCase();
   const keywords: string[] = [];
 
-  // Common issue keywords
   if (lower.includes('slow') || lower.includes('performance')) {
     keywords.push('cpu', 'memory', 'disk', 'performance');
   }
@@ -263,150 +247,4 @@ function extractKeywords(issue: string): string[] {
   }
 
   return keywords;
-}
-
-/**
- * Identify likely causes based on symptoms.
- */
-function identifyLikelyCauses(
-  issue: string,
-  device: T.Device,
-  alerts: T.Alert[],
-  audit: any,
-  jobs: any[]
-): string[] {
-  const causes: string[] = [];
-
-  if (!device.online) {
-    causes.push('Device is offline - Network issue, power loss, or agent stopped');
-    return causes;
-  }
-
-  // Disk space issues
-  const diskAlerts = alerts.filter((a) => a.diagnostics?.toLowerCase().includes('disk'));
-  if (diskAlerts.length > 0 || issue.toLowerCase().includes('disk')) {
-    causes.push('Disk space exhaustion - May cause performance degradation or service failures');
-  }
-
-  // Service failures
-  const serviceAlerts = alerts.filter((a) => a.diagnostics?.toLowerCase().includes('service'));
-  if (serviceAlerts.length > 0 || issue.toLowerCase().includes('service')) {
-    causes.push('Critical services stopped - Application unavailability or crashes');
-  }
-
-  // Failed jobs
-  const failedJobs = jobs.filter((j: any) => j.status === 'failed');
-  if (failedJobs.length > 2) {
-    causes.push(`Multiple job failures (${failedJobs.length} recent) - Agent communication or permissions issue`);
-  }
-
-  // Performance issues
-  if (issue.toLowerCase().includes('slow') || issue.toLowerCase().includes('performance')) {
-    if (audit?.disks) {
-      const highDisk = audit.disks.some((d: any) => ((d.capacity - d.freeSpace) / d.capacity) > 0.9);
-      if (highDisk) {
-        causes.push('High disk usage (>90%) - Can significantly impact system performance');
-      }
-    }
-    if (alerts.some((a) => a.diagnostics?.toLowerCase().includes('cpu'))) {
-      causes.push('High CPU usage detected - Check for runaway processes or malware');
-    }
-  }
-
-  if (causes.length === 0) {
-    causes.push('No obvious issues detected from current state - May require deeper investigation');
-  }
-
-  return causes;
-}
-
-/**
- * Generate prioritized action plan.
- */
-function generateActionPlan(
-  issue: string,
-  device: T.Device,
-  alerts: T.Alert[],
-  audit: any,
-  jobs: any[]
-): string[] {
-  const actions: string[] = [];
-
-  if (!device.online) {
-    actions.push('Check network connectivity and verify device is powered on');
-    actions.push('Use `rmm_get_site_health` to see if other devices at the site are affected');
-    actions.push('Restart Datto RMM agent if device is accessible via other means');
-    return actions;
-  }
-
-  // Handle disk space issues
-  const diskAlerts = alerts.filter((a) => a.diagnostics?.toLowerCase().includes('disk'));
-  if (diskAlerts.length > 0) {
-    actions.push('**Immediate:** Free disk space - Run "Disk Cleanup" component');
-    actions.push('Clear temporary files and old logs');
-  }
-
-  // Handle service issues
-  const serviceAlerts = alerts.filter((a) => a.diagnostics?.toLowerCase().includes('service'));
-  if (serviceAlerts.length > 0) {
-    actions.push('**Restart critical services** - Check Windows services or specific application services');
-  }
-
-  // Handle failed jobs
-  const failedJobs = jobs.filter((j: any) => j.status === 'failed');
-  if (failedJobs.length > 0) {
-    actions.push(`Review ${failedJobs.length} failed job(s) - Check job logs for error details`);
-  }
-
-  // Performance issues
-  if (issue.toLowerCase().includes('slow') || issue.toLowerCase().includes('performance')) {
-    actions.push('Check resource usage - CPU, memory, and disk I/O');
-    actions.push('Review running processes for abnormal activity');
-    if (!actions.some((a) => a.includes('disk'))) {
-      actions.push('Consider running disk cleanup if space is low');
-    }
-  }
-
-  // Backup issues
-  if (issue.toLowerCase().includes('backup')) {
-    actions.push('Verify backup service is running');
-    actions.push('Check available disk space for backup destination');
-    actions.push('Review backup job logs for specific errors');
-  }
-
-  // Generic actions if nothing specific
-  if (actions.length === 0) {
-    actions.push('Review all open alerts for clues');
-    actions.push('Check recent job history for failures');
-    actions.push('Use `rmm_investigate_alert` on any critical alerts');
-  }
-
-  // Always suggest monitoring
-  actions.push('**Monitor:** Use `rmm_get_device_health` to track progress after taking actions');
-
-  return actions;
-}
-
-/**
- * Format timestamp to human-readable string.
- */
-function formatTimestamp(timestamp: number | string | undefined): string {
-  if (!timestamp) return 'Unknown';
-  
-  const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
-  const date = new Date(ts);
-  const now = Date.now();
-  const diff = now - date.getTime();
-
-  if (diff < 60000) return 'just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-
-  return date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }

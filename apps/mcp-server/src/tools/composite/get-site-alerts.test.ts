@@ -11,11 +11,13 @@ describe('rmm_get_site_alerts', () => {
     const client = createMockClient();
     const result = await getSiteAlerts(client, { site: 'Acme Corp' });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('# Site Alerts: Acme Corp');
-    expect(text).toContain('**Total:**');
-    expect(text).toContain('**Severity:**');
-    expect(text).toContain('## 💡 Recommended Actions');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.total).toBeGreaterThanOrEqual(0);
+    expect(body.data.critical).toBeGreaterThanOrEqual(0);
+    expect(body.data.warning).toBeGreaterThanOrEqual(0);
+    expect(body.data.groups).toBeInstanceOf(Array);
   });
 
   it('should group alerts by type', async () => {
@@ -65,11 +67,17 @@ describe('rmm_get_site_alerts', () => {
       group_by: 'type',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## Grouped by Alert Type');
-    expect(text).toContain('Disk Space');
-    expect(text).toContain('Service Down');
-    expect(text).toContain('Affected devices:');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.groups).toBeInstanceOf(Array);
+    expect(body.data.groups.length).toBeGreaterThan(0);
+
+    const groupKeys = body.data.groups.map((g: any) => g.key);
+    expect(groupKeys).toContain('Disk Space');
+    expect(groupKeys).toContain('Service Down');
+
+    const diskGroup = body.data.groups.find((g: any) => g.key === 'Disk Space');
+    expect(diskGroup.alerts).toHaveLength(2);
   });
 
   it('should group alerts by device', async () => {
@@ -140,10 +148,17 @@ describe('rmm_get_site_alerts', () => {
       group_by: 'device',
     });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## Grouped by Device');
-    expect(text).toContain('server-01 (2 alerts)');
-    expect(text).toContain('server-02 (1 alert');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.groups).toBeInstanceOf(Array);
+
+    const server01Group = body.data.groups.find((g: any) => g.key === 'server-01');
+    expect(server01Group).toBeDefined();
+    expect(server01Group.alerts).toHaveLength(2);
+
+    const server02Group = body.data.groups.find((g: any) => g.key === 'server-02');
+    expect(server02Group).toBeDefined();
+    expect(server02Group.alerts).toHaveLength(1);
   });
 
   it('should filter alerts by severity', async () => {
@@ -178,9 +193,16 @@ describe('rmm_get_site_alerts', () => {
       severity: 'critical',
     });
 
-    const textCritical = resultCritical.content[0]!.text;
-    expect(textCritical).toContain('Critical issue');
-    expect(textCritical).not.toContain('High priority issue');
+    const bodyCritical = JSON.parse(resultCritical.content[0]!.text);
+    expect(bodyCritical.ok).toBe(true);
+    expect(bodyCritical.data.total).toBe(1);
+    expect(bodyCritical.data.critical).toBe(1);
+
+    // All alerts in groups should have Critical priority
+    const allAlerts = bodyCritical.data.groups.flatMap((g: any) => g.alerts);
+    for (const alert of allAlerts) {
+      expect(alert.priority).toBe('Critical');
+    }
   });
 
   it('should handle no alerts', async () => {
@@ -193,8 +215,10 @@ describe('rmm_get_site_alerts', () => {
 
     const result = await getSiteAlerts(client, { site: 'Acme Corp' });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('✅ **No open alerts**');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.total).toBe(0);
+    expect(body.data.groups).toHaveLength(0);
   });
 
   it('should handle site not found', async () => {
@@ -208,15 +232,21 @@ describe('rmm_get_site_alerts', () => {
     const result = await getSiteAlerts(client, { site: 'nonexistent' });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0]!.text).toContain('Site not found');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('entity_not_found');
+    expect(body.detail).toContain('Site not found');
   });
 
-  it('should provide actionable recommendations', async () => {
+  it('should return alert counts', async () => {
     const client = createMockClient();
 
     const result = await getSiteAlerts(client, { site: 'Acme Corp' });
 
-    const text = result.content[0]!.text;
-    expect(text).toContain('## 💡 Recommended Actions');
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.total).toBeGreaterThanOrEqual(0);
+    expect(typeof body.data.critical).toBe('number');
+    expect(typeof body.data.warning).toBe('number');
   });
 });
