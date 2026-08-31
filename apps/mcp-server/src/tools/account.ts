@@ -360,6 +360,39 @@ export async function listOpenAlerts(
 }
 
 /**
+ * Get API call metering summary for the account.
+ * This endpoint is not in the OpenAPI spec; use `as never` to bypass path typing.
+ */
+export async function getMeteringSummary(
+  client: DattoClient,
+  args: { origin?: string }
+): Promise<ToolResult> {
+  try {
+    type RawGet = (path: string, opts?: { params?: { query?: Record<string, string | undefined> } }) => Promise<{ data?: unknown; error?: unknown; response: Response }>;
+    const rawGet = client.GET as unknown as RawGet;
+    const response = await rawGet('/v2/metering/summary', {
+      params: { query: args.origin ? { origin: args.origin } : undefined },
+    });
+
+    const data = handleResponse<Record<string, unknown>>(response);
+
+    const lines = [
+      '# API Metering Summary',
+      '',
+      '```json',
+      JSON.stringify(data, null, 2),
+      '```',
+      '',
+      '_Note: Counts reset when the service restarts._',
+    ];
+
+    return successResultWithMetadata(lines.join('\n'));
+  } catch (err) {
+    return errorResult(`Error fetching metering summary: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/**
  * List resolved alerts for the account.
  */
 export async function listResolvedAlerts(

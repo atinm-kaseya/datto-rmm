@@ -488,6 +488,21 @@ export const tools: ToolDefinition[] = [
     },
     handler: (client, args) => accountTools.listResolvedAlerts(client, args as Parameters<typeof accountTools.listResolvedAlerts>[1]),
   },
+  {
+    name: 'get-api-metering-summary',
+    description: 'Get API call metering statistics for this account. Returns total calls, breakdown by origin (mcp vs api), top endpoints, top MCP agents, and error rate. Optionally filter by origin.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        origin: {
+          type: 'string',
+          enum: ['mcp', 'api'],
+          description: 'Filter by call origin (default: all)',
+        },
+      },
+    },
+    handler: (client, args) => accountTools.getMeteringSummary(client, args as Parameters<typeof accountTools.getMeteringSummary>[1]),
+  },
 
   // Site Tools
   {
