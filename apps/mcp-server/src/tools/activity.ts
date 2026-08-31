@@ -5,7 +5,7 @@ import type * as T from '../types.js';
 /**
  * Get activity logs.
  */
-export async function getActivityLogs(
+export async function listActivityLogs(
   client: DattoClient,
   args: {
     size?: number;

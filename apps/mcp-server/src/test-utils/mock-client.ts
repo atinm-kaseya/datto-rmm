@@ -71,6 +71,9 @@ export function createMockClient(mockResponses: Partial<MockResponses> = {}): Da
       if (path.startsWith('/v2/device/') && path.includes('/alerts/resolved')) {
         return { data: responses.deviceResolvedAlerts, error: undefined, response: mockResponse() };
       }
+      if (path.startsWith('/v2/device/') && path.includes('/patches')) {
+        return { data: responses.devicePatches, error: undefined, response: mockResponse() };
+      }
 
       // ── Audit ─────────────────────────────────────────────────────────────────
       if (path === '/v2/audit/device/{deviceUid}/software') {
@@ -108,6 +111,9 @@ export function createMockClient(mockResponses: Partial<MockResponses> = {}): Da
         }
         if (path.includes('/filters')) {
           return { data: responses.siteFilters, error: undefined, response: mockResponse() };
+        }
+        if (path.includes('/patches')) {
+          return { data: responses.sitePatches, error: undefined, response: mockResponse() };
         }
         // Default: site info
         return { data: responses.site, error: undefined, response: mockResponse() };
@@ -243,6 +249,10 @@ export interface MockResponses {
 
   // QuickJob result
   quickJobResult: T.CreateQuickJobResponse;
+
+  // Patches
+  devicePatches: { pageDetails?: any; patches?: any[] };
+  sitePatches: { pageDetails?: any; patches?: any[] };
 }
 
 /**
@@ -519,6 +529,7 @@ const defaultMockResponses: MockResponses = {
     siteUid: 'site-1',
     online: true,
     deviceType: { type: 'Server' },
+    deviceClass: 'device' as const,
     operatingSystem: 'Windows Server 2022',
     intIpAddress: '192.168.1.10',
     extIpAddress: '203.0.113.10',
@@ -618,8 +629,7 @@ const defaultMockResponses: MockResponses = {
   jobResults: {
     jobUid: 'job-1',
     deviceUid: 'device-1',
-    status: 'completed',
-    exitCode: 0,
+    jobDeploymentStatus: 'Success',
   } as any,
   jobStdout: [
     { jobUid: 'job-1', deviceUid: 'device-1', output: 'Job completed successfully' } as any,
@@ -677,6 +687,21 @@ const defaultMockResponses: MockResponses = {
       status: 'running',
     } as any,
     jobComponents: [],
+  },
+  devicePatches: {
+    pageDetails: { count: 2, prevPageUrl: undefined, nextPageUrl: undefined },
+    patches: [
+      { id: 1, title: 'Security Update KB1234567', severity: 'Critical', installStatus: 'APPROVED_PENDING', kb: 'KB1234567' },
+      { id: 2, title: 'Windows Feature Update', severity: 'Important', installStatus: 'INSTALLED', kb: 'KB9876543' },
+    ],
+  },
+  sitePatches: {
+    pageDetails: { count: 3, prevPageUrl: undefined, nextPageUrl: undefined },
+    patches: [
+      { id: 1, title: 'Security Update KB1234567', severity: 'Critical', installStatus: 'APPROVED_PENDING', kb: 'KB1234567' },
+      { id: 2, title: 'Windows Feature Update', severity: 'Important', installStatus: 'INSTALLED', kb: 'KB9876543' },
+      { id: 3, title: 'Driver Update', severity: 'Low', installStatus: 'NOT_APPROVED', kb: 'KB1111111' },
+    ],
   },
 };
 

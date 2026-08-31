@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getActivityLogs } from './activity.js';
+import { listActivityLogs } from './activity.js';
 import { createMockClient } from '../test-utils/mock-client.js';
 
 function makeErrorClient() {
@@ -23,12 +23,12 @@ function makeErrorClient() {
   } as any;
 }
 
-// ─── getActivityLogs ───────────────────────────────────────────────────────────
+// ─── listActivityLogs ──────────────────────────────────────────────────────────
 
-describe('getActivityLogs', () => {
+describe('listActivityLogs', () => {
   it('returns activity logs array with count', async () => {
     const client = createMockClient();
-    const result = await getActivityLogs(client, {});
+    const result = await listActivityLogs(client, {});
 
     expect(result.isError).toBeUndefined();
     const body = JSON.parse(result.content[0]!.text);
@@ -40,7 +40,7 @@ describe('getActivityLogs', () => {
 
   it('passes size and order args', async () => {
     const client = createMockClient();
-    const result = await getActivityLogs(client, { size: 50, order: 'asc' });
+    const result = await listActivityLogs(client, { size: 50, order: 'asc' });
 
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(true);
@@ -48,7 +48,7 @@ describe('getActivityLogs', () => {
 
   it('passes entity filter (device)', async () => {
     const client = createMockClient();
-    const result = await getActivityLogs(client, { entities: ['device'] });
+    const result = await listActivityLogs(client, { entities: ['device'] });
 
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(true);
@@ -56,7 +56,7 @@ describe('getActivityLogs', () => {
 
   it('passes entity filter (user)', async () => {
     const client = createMockClient();
-    const result = await getActivityLogs(client, { entities: ['user'] });
+    const result = await listActivityLogs(client, { entities: ['user'] });
 
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(true);
@@ -64,7 +64,7 @@ describe('getActivityLogs', () => {
 
   it('passes date range filters', async () => {
     const client = createMockClient();
-    const result = await getActivityLogs(client, {
+    const result = await listActivityLogs(client, {
       from: '2026-01-01T00:00:00Z',
       until: '2026-08-31T23:59:59Z',
     });
@@ -80,7 +80,7 @@ describe('getActivityLogs', () => {
         activities: [],
       },
     });
-    const result = await getActivityLogs(client, {});
+    const result = await listActivityLogs(client, {});
 
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(true);
@@ -89,7 +89,7 @@ describe('getActivityLogs', () => {
   });
 
   it('returns error envelope on API failure', async () => {
-    const result = await getActivityLogs(makeErrorClient(), {});
+    const result = await listActivityLogs(makeErrorClient(), {});
 
     expect(result.isError).toBe(true);
     const body = JSON.parse(result.content[0]!.text);

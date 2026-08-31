@@ -5,9 +5,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   getSite,
-  listSiteDevices,
-  listSiteOpenAlerts,
-  listSiteResolvedAlerts,
   listSiteVariables,
   getSiteSettings,
   listSiteFilters,
@@ -61,82 +58,6 @@ describe('getSite', () => {
 
   it('returns error envelope on API failure', async () => {
     const result = await getSite(makeErrorClient(), { siteUid: 'site-1' });
-
-    expect(result.isError).toBe(true);
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(false);
-  });
-});
-
-// ─── listSiteDevices ───────────────────────────────────────────────────────────
-
-describe('listSiteDevices', () => {
-  it('returns devices with count', async () => {
-    const client = createMockClient();
-    const result = await listSiteDevices(client, { siteUid: 'site-1' });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(Array.isArray(body.data)).toBe(true);
-    expect(body.count).toBe(5);
-    expect(body.data.length).toBe(3);
-  });
-
-  it('passes filterId arg', async () => {
-    const client = createMockClient();
-    const result = await listSiteDevices(client, { siteUid: 'site-1', filterId: 42 });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-  });
-
-  it('returns error envelope on API failure', async () => {
-    const result = await listSiteDevices(makeErrorClient(), { siteUid: 'site-1' });
-
-    expect(result.isError).toBe(true);
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(false);
-  });
-});
-
-// ─── listSiteOpenAlerts ────────────────────────────────────────────────────────
-
-describe('listSiteOpenAlerts', () => {
-  it('returns open alerts for a site', async () => {
-    const client = createMockClient();
-    const result = await listSiteOpenAlerts(client, { siteUid: 'site-1' });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(Array.isArray(body.data)).toBe(true);
-    expect(body.count).toBe(3);
-  });
-
-  it('returns error envelope on API failure', async () => {
-    const result = await listSiteOpenAlerts(makeErrorClient(), { siteUid: 'site-1' });
-
-    expect(result.isError).toBe(true);
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(false);
-  });
-});
-
-// ─── listSiteResolvedAlerts ────────────────────────────────────────────────────
-
-describe('listSiteResolvedAlerts', () => {
-  it('returns resolved alerts for a site', async () => {
-    const client = createMockClient();
-    const result = await listSiteResolvedAlerts(client, { siteUid: 'site-1' });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(Array.isArray(body.data)).toBe(true);
-    expect(body.count).toBe(2);
-    expect(body.data[0].alertUid).toBe('site-resolved-1');
-  });
-
-  it('returns error envelope on API failure', async () => {
-    const result = await listSiteResolvedAlerts(makeErrorClient(), { siteUid: 'site-1' });
 
     expect(result.isError).toBe(true);
     const body = JSON.parse(result.content[0]!.text);

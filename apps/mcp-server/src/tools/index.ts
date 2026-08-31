@@ -431,7 +431,7 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: 'rmm_list_devices',
-    description: '🔧 [Advanced] List all devices (raw API). Use rmm_search_devices for natural language search.',
+    description: '🔧 [Advanced] List all devices (raw API) or devices in a specific site if siteUid is provided. Use rmm_search_devices for natural language search.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -442,6 +442,7 @@ export const tools: ToolDefinition[] = [
         deviceType: { type: 'string', description: 'Filter by device type' },
         operatingSystem: { type: 'string', description: 'Filter by OS (partial match)' },
         filterId: { type: 'number', description: 'Apply a device filter by ID' },
+        siteUid: { type: 'string', description: 'If provided, list devices for this site only' },
       },
     },
     handler: (client, args) => accountTools.listDevices(client, args as Parameters<typeof accountTools.listDevices>[1]),
@@ -483,30 +484,20 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => accountTools.listComponents(client, args as Parameters<typeof accountTools.listComponents>[1]),
   },
   {
-    name: 'rmm_list_open_alerts',
-    description: '🔧 [Advanced] List all open alerts (raw API). Use rmm_get_alert_summary for analytics.',
+    name: 'rmm_list_alerts',
+    description: '🔧 [Advanced] List alerts with flexible routing. Defaults to open alerts account-wide. Use siteUid or deviceUid to scope. Use rmm_get_alert_summary for analytics.',
     inputSchema: {
       type: 'object',
       properties: {
+        status: { type: 'string', enum: ['open', 'resolved'], description: 'Alert status (default: open)' },
+        siteUid: { type: 'string', description: 'Filter to a specific site' },
+        deviceUid: { type: 'string', description: 'Filter to a specific device (takes precedence over siteUid)' },
         page: { type: 'number', description: 'Page number' },
         max: { type: 'number', description: 'Results per page' },
         muted: { type: 'boolean', description: 'Filter by muted status' },
       },
     },
-    handler: (client, args) => accountTools.listOpenAlerts(client, args as Parameters<typeof accountTools.listOpenAlerts>[1]),
-  },
-  {
-    name: 'rmm_list_resolved_alerts',
-    description: 'List resolved alerts across the account',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        page: { type: 'number', description: 'Page number' },
-        max: { type: 'number', description: 'Results per page' },
-        muted: { type: 'boolean', description: 'Filter by muted status' },
-      },
-    },
-    handler: (client, args) => accountTools.listResolvedAlerts(client, args as Parameters<typeof accountTools.listResolvedAlerts>[1]),
+    handler: (client, args) => accountTools.listAlerts(client, args as Parameters<typeof accountTools.listAlerts>[1]),
   },
   {
     name: 'rmm_get_api_metering_summary',
@@ -536,51 +527,6 @@ export const tools: ToolDefinition[] = [
       required: ['siteUid'],
     },
     handler: (client, args) => siteTools.getSite(client, args as Parameters<typeof siteTools.getSite>[1]),
-  },
-  {
-    name: 'rmm_get_site_devices',
-    description: '🔧 [Advanced] Get site devices (raw API). Included in rmm_get_site_health.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        siteUid: { type: 'string', description: 'The unique ID of the site' },
-        page: { type: 'number', description: 'Page number' },
-        max: { type: 'number', description: 'Results per page' },
-        filterId: { type: 'number', description: 'Apply a device filter' },
-      },
-      required: ['siteUid'],
-    },
-    handler: (client, args) => siteTools.listSiteDevices(client, args as Parameters<typeof siteTools.listSiteDevices>[1]),
-  },
-  {
-    name: 'rmm_list_site_open_alerts',
-    description: '🔧 [Advanced] List site alerts (raw API). Included in rmm_get_site_health.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        siteUid: { type: 'string', description: 'The unique ID of the site' },
-        page: { type: 'number', description: 'Page number' },
-        max: { type: 'number', description: 'Results per page' },
-        muted: { type: 'boolean', description: 'Filter by muted status' },
-      },
-      required: ['siteUid'],
-    },
-    handler: (client, args) => siteTools.listSiteOpenAlerts(client, args as Parameters<typeof siteTools.listSiteOpenAlerts>[1]),
-  },
-  {
-    name: 'rmm_list_site_resolved_alerts',
-    description: 'List resolved alerts for a specific site',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        siteUid: { type: 'string', description: 'The unique ID of the site' },
-        page: { type: 'number', description: 'Page number' },
-        max: { type: 'number', description: 'Results per page' },
-        muted: { type: 'boolean', description: 'Filter by muted status' },
-      },
-      required: ['siteUid'],
-    },
-    handler: (client, args) => siteTools.listSiteResolvedAlerts(client, args as Parameters<typeof siteTools.listSiteResolvedAlerts>[1]),
   },
   {
     name: 'rmm_list_site_variables',
@@ -694,36 +640,6 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.getDeviceByMac(client, args as Parameters<typeof deviceTools.getDeviceByMac>[1]),
   },
   {
-    name: 'rmm_list_device_open_alerts',
-    description: '🔧 [Advanced] List device alerts (raw API). Included in rmm_get_device_health.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        deviceUid: { type: 'string', description: 'The unique ID of the device' },
-        page: { type: 'number', description: 'Page number' },
-        max: { type: 'number', description: 'Results per page' },
-        muted: { type: 'boolean', description: 'Filter by muted status' },
-      },
-      required: ['deviceUid'],
-    },
-    handler: (client, args) => deviceTools.listDeviceOpenAlerts(client, args as Parameters<typeof deviceTools.listDeviceOpenAlerts>[1]),
-  },
-  {
-    name: 'rmm_list_device_resolved_alerts',
-    description: 'List resolved alerts for a specific device',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        deviceUid: { type: 'string', description: 'The unique ID of the device' },
-        page: { type: 'number', description: 'Page number' },
-        max: { type: 'number', description: 'Results per page' },
-        muted: { type: 'boolean', description: 'Filter by muted status' },
-      },
-      required: ['deviceUid'],
-    },
-    handler: (client, args) => deviceTools.listDeviceResolvedAlerts(client, args as Parameters<typeof deviceTools.listDeviceResolvedAlerts>[1]),
-  },
-  {
     name: 'rmm_move_device',
     description: 'Move a device from one site to another',
     inputSchema: {
@@ -737,13 +653,12 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => deviceTools.moveDevice(client, args as Parameters<typeof deviceTools.moveDevice>[1]),
   },
   {
-    name: 'rmm_create_quick_job',
-    description: 'Create and run a quick job on a device using a component',
+    name: 'rmm_run_job',
+    description: 'Run a quick job on a device using a component',
     inputSchema: {
       type: 'object',
       properties: {
         deviceUid: { type: 'string', description: 'The unique ID of the device' },
-        jobName: { type: 'string', description: 'Name for the job' },
         componentUid: { type: 'string', description: 'UID of the component to run' },
         variables: {
           type: 'array',
@@ -757,9 +672,9 @@ export const tools: ToolDefinition[] = [
           },
         },
       },
-      required: ['deviceUid', 'jobName', 'componentUid'],
+      required: ['deviceUid', 'componentUid'],
     },
-    handler: (client, args) => deviceTools.createQuickJob(client, args as Parameters<typeof deviceTools.createQuickJob>[1]),
+    handler: (client, args) => deviceTools.runJob(client, args as Parameters<typeof deviceTools.runJob>[1]),
   },
   {
     name: 'rmm_set_device_udf',
@@ -847,8 +762,8 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => jobTools.getJobComponents(client, args as Parameters<typeof jobTools.getJobComponents>[1]),
   },
   {
-    name: 'rmm_get_job_results',
-    description: 'Get job execution results for a specific device',
+    name: 'rmm_get_job_status',
+    description: 'Get job execution status and results for a specific device. Includes stdout if the job completed successfully.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -857,33 +772,7 @@ export const tools: ToolDefinition[] = [
       },
       required: ['jobUid', 'deviceUid'],
     },
-    handler: (client, args) => jobTools.getJobResults(client, args as Parameters<typeof jobTools.getJobResults>[1]),
-  },
-  {
-    name: 'rmm_get_job_stdout',
-    description: 'Get the stdout output from a job execution',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        jobUid: { type: 'string', description: 'The unique ID of the job' },
-        deviceUid: { type: 'string', description: 'The unique ID of the device' },
-      },
-      required: ['jobUid', 'deviceUid'],
-    },
-    handler: (client, args) => jobTools.getJobStdout(client, args as Parameters<typeof jobTools.getJobStdout>[1]),
-  },
-  {
-    name: 'rmm_get_job_stderr',
-    description: 'Get the stderr output from a job execution',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        jobUid: { type: 'string', description: 'The unique ID of the job' },
-        deviceUid: { type: 'string', description: 'The unique ID of the device' },
-      },
-      required: ['jobUid', 'deviceUid'],
-    },
-    handler: (client, args) => jobTools.getJobStderr(client, args as Parameters<typeof jobTools.getJobStderr>[1]),
+    handler: (client, args) => jobTools.getJobStatus(client, args as Parameters<typeof jobTools.getJobStatus>[1]),
   },
 
   // ==================== Audit Tools ====================
@@ -926,34 +815,29 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => auditTools.getDeviceAuditByMac(client, args as Parameters<typeof auditTools.getDeviceAuditByMac>[1]),
   },
   {
-    name: 'rmm_get_esxi_audit',
-    description: 'Get audit data for an ESXi host (including VMs)',
+    name: 'rmm_list_patches',
+    description: 'List patches for a specific device or site. Exactly one of deviceUid or siteUid must be provided.',
     inputSchema: {
       type: 'object',
       properties: {
-        deviceUid: { type: 'string', description: 'The unique ID of the ESXi host' },
+        deviceUid: { type: 'string', description: 'The unique ID of the device (mutually exclusive with siteUid)' },
+        siteUid: { type: 'string', description: 'The unique ID of the site (mutually exclusive with deviceUid)' },
+        installStatus: {
+          type: 'string',
+          enum: ['INSTALLED', 'APPROVED_PENDING', 'NOT_APPROVED'],
+          description: 'Filter by patch install status',
+        },
+        page: { type: 'number', description: 'Page number' },
+        max: { type: 'number', description: 'Results per page' },
       },
-      required: ['deviceUid'],
     },
-    handler: (client, args) => auditTools.getEsxiAudit(client, args as Parameters<typeof auditTools.getEsxiAudit>[1]),
-  },
-  {
-    name: 'rmm_get_printer_audit',
-    description: 'Get audit data for a printer (including supply levels)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        deviceUid: { type: 'string', description: 'The unique ID of the printer' },
-      },
-      required: ['deviceUid'],
-    },
-    handler: (client, args) => auditTools.getPrinterAudit(client, args as Parameters<typeof auditTools.getPrinterAudit>[1]),
+    handler: (client, args) => auditTools.listPatches(client, args as Parameters<typeof auditTools.listPatches>[1]),
   },
 
   // ==================== Activity Log Tools ====================
   {
-    name: 'rmm_get_activity_logs',
-    description: 'Get activity logs with filtering options. Returns logs from last 15 minutes by default.',
+    name: 'rmm_list_activity_logs',
+    description: 'List activity logs with filtering options. Returns logs from last 15 minutes by default.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -968,7 +852,7 @@ export const tools: ToolDefinition[] = [
         userIds: { type: 'array', items: { type: 'number' }, description: 'Filter by user IDs' },
       },
     },
-    handler: (client, args) => activityTools.getActivityLogs(client, args as Parameters<typeof activityTools.getActivityLogs>[1]),
+    handler: (client, args) => activityTools.listActivityLogs(client, args as Parameters<typeof activityTools.listActivityLogs>[1]),
   },
 
   // ==================== Filter Tools ====================
@@ -1172,24 +1056,22 @@ export const CORE_TOOL_NAMES = new Set<string>([
 export const LAZY_TOOL_GROUPS: Record<string, string[]> = {
   account: [
     'rmm_get_account', 'rmm_list_sites', 'rmm_list_devices', 'rmm_list_users',
-    'rmm_list_account_variables', 'rmm_list_components', 'rmm_list_open_alerts',
-    'rmm_list_resolved_alerts', 'rmm_get_api_metering_summary',
+    'rmm_list_account_variables', 'rmm_list_components', 'rmm_list_alerts',
+    'rmm_get_api_metering_summary',
   ],
   sites: [
-    'rmm_get_site', 'rmm_get_site_devices', 'rmm_list_site_open_alerts',
-    'rmm_list_site_resolved_alerts', 'rmm_list_site_variables', 'rmm_get_site_settings',
+    'rmm_get_site', 'rmm_list_site_variables', 'rmm_get_site_settings',
     'rmm_list_site_filters', 'rmm_create_site', 'rmm_update_site',
     'rmm_update_site_proxy', 'rmm_delete_site_proxy',
   ],
   devices: [
     'rmm_get_device', 'rmm_get_device_by_id', 'rmm_get_device_by_mac',
-    'rmm_list_device_open_alerts', 'rmm_list_device_resolved_alerts',
-    'rmm_move_device', 'rmm_create_quick_job', 'rmm_set_device_udf', 'rmm_set_device_warranty',
+    'rmm_move_device', 'rmm_run_job', 'rmm_set_device_udf', 'rmm_set_device_warranty',
   ],
   alerts: ['rmm_get_alert', 'rmm_resolve_alert'],
-  jobs: ['rmm_get_job', 'rmm_get_job_components', 'rmm_get_job_results', 'rmm_get_job_stdout', 'rmm_get_job_stderr'],
-  audit: ['rmm_get_device_audit', 'rmm_get_device_software', 'rmm_get_device_audit_by_mac', 'rmm_get_esxi_audit', 'rmm_get_printer_audit'],
-  activity: ['rmm_get_activity_logs'],
+  jobs: ['rmm_get_job', 'rmm_get_job_components', 'rmm_get_job_status'],
+  audit: ['rmm_get_device_audit', 'rmm_get_device_software', 'rmm_get_device_audit_by_mac', 'rmm_list_patches'],
+  activity: ['rmm_list_activity_logs'],
   filters: ['rmm_list_default_filters', 'rmm_list_custom_filters'],
   system: ['rmm_get_system_status', 'rmm_get_rate_limit', 'rmm_get_pagination_config'],
   variables: [

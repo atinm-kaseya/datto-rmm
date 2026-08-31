@@ -45,7 +45,7 @@ export async function listSites(
 }
 
 /**
- * List all devices in the account.
+ * List all devices in the account, or devices in a specific site if siteUid is provided.
  */
 export async function listDevices(
   client: DattoClient,
@@ -57,10 +57,27 @@ export async function listDevices(
     deviceType?: string;
     operatingSystem?: string;
     filterId?: number;
+    siteUid?: string;
   }
 ): Promise<ToolResult> {
   try {
     const pagination = normalizePagination(args);
+
+    if (args.siteUid) {
+      const response = await client.GET('/v2/site/{siteUid}/devices', {
+        params: {
+          path: { siteUid: args.siteUid },
+          query: {
+            page: pagination.page,
+            max: pagination.max,
+            filterId: args.filterId,
+          },
+        },
+      });
+      const page = handleResponse<T.DevicesPage>(response);
+      const { count, next_page } = extractPageMeta(page);
+      return successResponse({ data: page.devices ?? [], count, next_page, _enhanced: buildEnhanced(page.devices ?? []) });
+    }
 
     const response = await client.GET('/v2/account/devices', {
       params: {
@@ -162,24 +179,74 @@ export async function listComponents(
 }
 
 /**
- * List open alerts for the account.
+ * List alerts with flexible routing by status, site, and device.
  */
-export async function listOpenAlerts(
+export async function listAlerts(
   client: DattoClient,
-  args: { page?: number; max?: number; muted?: boolean }
+  args: {
+    status?: 'open' | 'resolved';
+    siteUid?: string;
+    deviceUid?: string;
+    page?: number;
+    max?: number;
+    muted?: boolean;
+  }
 ): Promise<ToolResult> {
   try {
     const pagination = normalizePagination(args);
+    const isResolved = args.status === 'resolved';
 
-    const response = await client.GET('/v2/account/alerts/open', {
-      params: {
-        query: {
-          page: pagination.page,
-          max: pagination.max,
-          muted: args.muted,
-        },
-      },
-    });
+    let response: Awaited<ReturnType<DattoClient['GET']>>;
+
+    if (args.deviceUid) {
+      // Device-scoped alerts take precedence
+      if (isResolved) {
+        response = await client.GET('/v2/device/{deviceUid}/alerts/resolved', {
+          params: {
+            path: { deviceUid: args.deviceUid },
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      } else {
+        response = await client.GET('/v2/device/{deviceUid}/alerts/open', {
+          params: {
+            path: { deviceUid: args.deviceUid },
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      }
+    } else if (args.siteUid) {
+      if (isResolved) {
+        response = await client.GET('/v2/site/{siteUid}/alerts/resolved', {
+          params: {
+            path: { siteUid: args.siteUid },
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      } else {
+        response = await client.GET('/v2/site/{siteUid}/alerts/open', {
+          params: {
+            path: { siteUid: args.siteUid },
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      }
+    } else {
+      if (isResolved) {
+        response = await client.GET('/v2/account/alerts/resolved', {
+          params: {
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      } else {
+        response = await client.GET('/v2/account/alerts/open', {
+          params: {
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      }
+    }
+
     const page = handleResponse<T.AlertsPage>(response);
     const { count, next_page } = extractPageMeta(page);
     return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: buildEnhanced(page.alerts ?? []) });
@@ -210,29 +277,3 @@ export async function getMeteringSummary(
   }
 }
 
-/**
- * List resolved alerts for the account.
- */
-export async function listResolvedAlerts(
-  client: DattoClient,
-  args: { page?: number; max?: number; muted?: boolean }
-): Promise<ToolResult> {
-  try {
-    const pagination = normalizePagination(args);
-
-    const response = await client.GET('/v2/account/alerts/resolved', {
-      params: {
-        query: {
-          page: pagination.page,
-          max: pagination.max,
-          muted: args.muted,
-        },
-      },
-    });
-    const page = handleResponse<T.AlertsPage>(response);
-    const { count, next_page } = extractPageMeta(page);
-    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: buildEnhanced(page.alerts ?? []) });
-  } catch (err) {
-    return errorResponse(mapApiError(err));
-  }
-}

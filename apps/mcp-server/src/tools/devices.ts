@@ -134,13 +134,12 @@ export async function moveDevice(
 }
 
 /**
- * Create a quick job on a device.
+ * Run a quick job on a device.
  */
-export async function createQuickJob(
+export async function runJob(
   client: DattoClient,
   args: {
     deviceUid: string;
-    jobName: string;
     componentUid: string;
     variables?: Array<{ name: string; value: string }>;
   }
@@ -151,12 +150,11 @@ export async function createQuickJob(
         path: { deviceUid: args.deviceUid },
       },
       body: {
-        jobName: args.jobName,
         jobComponent: {
           componentUid: args.componentUid,
           variables: args.variables,
         },
-      },
+      } as any,
     });
     const data = handleResponse<T.CreateQuickJobResponse>(response);
     return successResponse({ data, _enhanced: {} });

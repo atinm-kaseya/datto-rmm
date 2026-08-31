@@ -48,14 +48,14 @@ export async function getJobComponents(
 }
 
 /**
- * Get job results for a device.
+ * Get job status for a device, including stdout if the job is complete.
  */
-export async function getJobResults(
+export async function getJobStatus(
   client: DattoClient,
   args: { jobUid: string; deviceUid: string }
 ): Promise<ToolResult> {
   try {
-    const response = await client.GET('/v2/job/{jobUid}/results/{deviceUid}', {
+    const resultsResponse = await client.GET('/v2/job/{jobUid}/results/{deviceUid}', {
       params: {
         path: {
           jobUid: args.jobUid,
@@ -63,54 +63,26 @@ export async function getJobResults(
         },
       },
     });
-    const data = handleResponse<T.JobResults>(response);
-    return successResponse({ data, _enhanced: {} });
-  } catch (err) {
-    return errorResponse(mapApiError(err));
-  }
-}
+    const results = handleResponse<T.JobResults>(resultsResponse);
 
-/**
- * Get job stdout for a device.
- */
-export async function getJobStdout(
-  client: DattoClient,
-  args: { jobUid: string; deviceUid: string }
-): Promise<ToolResult> {
-  try {
-    const response = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stdout', {
-      params: {
-        path: {
-          jobUid: args.jobUid,
-          deviceUid: args.deviceUid,
-        },
-      },
-    });
-    const data = handleResponse<T.JobStdData[]>(response);
-    return successResponse({ data, count: data.length, _enhanced: {} });
-  } catch (err) {
-    return errorResponse(mapApiError(err));
-  }
-}
+    let stdoutData: T.JobStdData[] | null = null;
+    if (results.jobDeploymentStatus === 'Success') {
+      try {
+        const stdoutResponse = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stdout', {
+          params: {
+            path: {
+              jobUid: args.jobUid,
+              deviceUid: args.deviceUid,
+            },
+          },
+        });
+        stdoutData = handleResponse<T.JobStdData[]>(stdoutResponse);
+      } catch {
+        stdoutData = null;
+      }
+    }
 
-/**
- * Get job stderr for a device.
- */
-export async function getJobStderr(
-  client: DattoClient,
-  args: { jobUid: string; deviceUid: string }
-): Promise<ToolResult> {
-  try {
-    const response = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stderr', {
-      params: {
-        path: {
-          jobUid: args.jobUid,
-          deviceUid: args.deviceUid,
-        },
-      },
-    });
-    const data = handleResponse<T.JobStdData[]>(response);
-    return successResponse({ data, count: data.length, _enhanced: {} });
+    return successResponse({ data: { ...results, stdout: stdoutData ?? null }, _enhanced: {} });
   } catch (err) {
     return errorResponse(mapApiError(err));
   }

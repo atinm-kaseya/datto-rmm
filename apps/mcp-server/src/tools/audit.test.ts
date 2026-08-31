@@ -7,8 +7,7 @@ import {
   getDeviceAudit,
   getDeviceSoftware,
   getDeviceAuditByMac,
-  getEsxiAudit,
-  getPrinterAudit,
+  listPatches,
 } from './audit.js';
 import { createMockClient } from '../test-utils/mock-client.js';
 
@@ -32,8 +31,14 @@ function makeErrorClient(status = 500) {
 // ─── getDeviceAudit ────────────────────────────────────────────────────────────
 
 describe('getDeviceAudit', () => {
-  it('returns audit data on success', async () => {
-    const client = createMockClient();
+  it('routes to standard audit endpoint when device class is "device"', async () => {
+    const client = createMockClient({
+      device: {
+        uid: 'device-1',
+        hostname: 'web-server-01',
+        deviceClass: 'device',
+      } as any,
+    });
     const result = await getDeviceAudit(client, { deviceUid: 'device-1' });
 
     expect(result.isError).toBeUndefined();
@@ -42,6 +47,69 @@ describe('getDeviceAudit', () => {
     expect(body.data).toBeDefined();
     expect(body.data.cpu).toBeDefined();
     expect(body.data.cpu.name).toBe('Intel Xeon E5-2680 v4');
+  });
+
+  it('routes to standard audit endpoint when device class is undefined', async () => {
+    const client = createMockClient({
+      device: {
+        uid: 'device-1',
+        hostname: 'web-server-01',
+        // no deviceClass
+      } as any,
+    });
+    const result = await getDeviceAudit(client, { deviceUid: 'device-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    // Standard audit endpoint returns deviceAudit mock
+    expect(body.data.cpu).toBeDefined();
+  });
+
+  it('routes to ESXi audit endpoint when device class is "esxihost"', async () => {
+    const client = createMockClient({
+      device: {
+        uid: 'device-1',
+        hostname: 'esxi-host-01',
+        deviceClass: 'esxihost',
+      } as any,
+    });
+    const result = await getDeviceAudit(client, { deviceUid: 'device-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.hostName).toBe('esxi-host-01');
+  });
+
+  it('routes to printer audit endpoint when device class is "printer"', async () => {
+    const client = createMockClient({
+      device: {
+        uid: 'device-1',
+        hostname: 'printer-01',
+        deviceClass: 'printer',
+      } as any,
+    });
+    const result = await getDeviceAudit(client, { deviceUid: 'device-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data).toBeDefined();
+    expect(body.data.printerName).toBe('HP LaserJet Pro');
+  });
+
+  it('routes to standard audit endpoint for rmmnetworkdevice class', async () => {
+    const client = createMockClient({
+      device: {
+        uid: 'device-1',
+        hostname: 'network-device-01',
+        deviceClass: 'rmmnetworkdevice',
+      } as any,
+    });
+    const result = await getDeviceAudit(client, { deviceUid: 'device-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.cpu).toBeDefined();
   });
 
   it('returns error envelope on API failure', async () => {
@@ -116,43 +184,70 @@ describe('getDeviceAuditByMac', () => {
   });
 });
 
-// ─── getEsxiAudit ──────────────────────────────────────────────────────────────
+// ─── listPatches ───────────────────────────────────────────────────────────────
 
-describe('getEsxiAudit', () => {
-  it('returns ESXi host audit data on success', async () => {
+describe('listPatches', () => {
+  it('returns patches for a device', async () => {
     const client = createMockClient();
-    const result = await getEsxiAudit(client, { deviceUid: 'device-1' });
+    const result = await listPatches(client, { deviceUid: 'device-1' });
 
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(true);
-    expect(body.data).toBeDefined();
-    expect(body.data.hostName).toBe('esxi-host-01');
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.count).toBe(2);
+    expect(body.data[0].title).toBe('Security Update KB1234567');
   });
 
-  it('returns error envelope on API failure', async () => {
-    const result = await getEsxiAudit(makeErrorClient(), { deviceUid: 'device-1' });
+  it('returns patches for a site', async () => {
+    const client = createMockClient();
+    const result = await listPatches(client, { siteUid: 'site-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.count).toBe(3);
+  });
+
+  it('passes installStatus filter', async () => {
+    const client = createMockClient();
+    const result = await listPatches(client, { deviceUid: 'device-1', installStatus: 'APPROVED_PENDING' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+  });
+
+  it('returns validation error when neither deviceUid nor siteUid is provided', async () => {
+    const client = createMockClient();
+    const result = await listPatches(client, {});
+
+    expect(result.isError).toBe(true);
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('validation_error');
+    expect(body.code).toBe(400);
+  });
+
+  it('returns validation error when both deviceUid and siteUid are provided', async () => {
+    const client = createMockClient();
+    const result = await listPatches(client, { deviceUid: 'device-1', siteUid: 'site-1' });
+
+    expect(result.isError).toBe(true);
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('validation_error');
+    expect(body.detail).toContain('mutually exclusive');
+  });
+
+  it('returns error envelope on API failure for device', async () => {
+    const result = await listPatches(makeErrorClient(), { deviceUid: 'device-1' });
 
     expect(result.isError).toBe(true);
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(false);
   });
-});
 
-// ─── getPrinterAudit ───────────────────────────────────────────────────────────
-
-describe('getPrinterAudit', () => {
-  it('returns printer audit data on success', async () => {
-    const client = createMockClient();
-    const result = await getPrinterAudit(client, { deviceUid: 'device-1' });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(body.data).toBeDefined();
-    expect(body.data.printerName).toBe('HP LaserJet Pro');
-  });
-
-  it('returns error envelope on API failure', async () => {
-    const result = await getPrinterAudit(makeErrorClient(), { deviceUid: 'device-1' });
+  it('returns error envelope on API failure for site', async () => {
+    const result = await listPatches(makeErrorClient(), { siteUid: 'site-1' });
 
     expect(result.isError).toBe(true);
     const body = JSON.parse(result.content[0]!.text);

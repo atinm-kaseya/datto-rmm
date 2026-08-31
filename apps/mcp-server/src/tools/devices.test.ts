@@ -10,7 +10,7 @@ import {
   listDeviceOpenAlerts,
   listDeviceResolvedAlerts,
   moveDevice,
-  createQuickJob,
+  runJob,
   setDeviceWarranty,
 } from './devices.js';
 import { createMockClient } from '../test-utils/mock-client.js';
@@ -208,14 +208,13 @@ describe('moveDevice', () => {
   });
 });
 
-// ─── createQuickJob ────────────────────────────────────────────────────────────
+// ─── runJob ────────────────────────────────────────────────────────────────────
 
-describe('createQuickJob', () => {
+describe('runJob', () => {
   it('returns quick job result on success', async () => {
     const client = createMockClient();
-    const result = await createQuickJob(client, {
+    const result = await runJob(client, {
       deviceUid: 'device-1',
-      jobName: 'Run Cleanup',
       componentUid: 'comp-1',
     });
 
@@ -228,9 +227,8 @@ describe('createQuickJob', () => {
 
   it('passes optional variables', async () => {
     const client = createMockClient();
-    const result = await createQuickJob(client, {
+    const result = await runJob(client, {
       deviceUid: 'device-1',
-      jobName: 'Run Cleanup',
       componentUid: 'comp-1',
       variables: [{ name: 'threshold', value: '90' }],
     });
@@ -240,9 +238,8 @@ describe('createQuickJob', () => {
   });
 
   it('returns error envelope on API failure', async () => {
-    const result = await createQuickJob(makeErrorClient(), {
+    const result = await runJob(makeErrorClient(), {
       deviceUid: 'device-1',
-      jobName: 'Run Cleanup',
       componentUid: 'comp-1',
     });
 

@@ -41,9 +41,9 @@ describe('LAZY_TOOL_GROUPS', () => {
     expect(Object.keys(LAZY_TOOL_GROUPS)).toHaveLength(10);
   });
 
-  it('has 53 total lazy tools', () => {
+  it('has 44 total lazy tools', () => {
     const total = Object.values(LAZY_TOOL_GROUPS).reduce((sum, names) => sum + names.length, 0);
-    expect(total).toBe(53);
+    expect(total).toBe(44);
   });
 });
 
@@ -52,7 +52,7 @@ describe('getToolGroup', () => {
     expect(getToolGroup('rmm_get_device')).toBe('devices');
     expect(getToolGroup('rmm_get_alert')).toBe('alerts');
     expect(getToolGroup('rmm_get_job')).toBe('jobs');
-    expect(getToolGroup('rmm_get_activity_logs')).toBe('activity');
+    expect(getToolGroup('rmm_list_activity_logs')).toBe('activity');
   });
 
   it('returns null for core tools', () => {
@@ -78,9 +78,9 @@ describe('tool coverage — no orphaned tools', () => {
     expect(orphans, `Orphaned tools (not in core or any lazy group): ${orphans.join(', ')}`).toHaveLength(0);
   });
 
-  it('total tools (67) equals CORE_TOOL_NAMES (14) + lazy (53)', () => {
+  it('total tools (58) equals CORE_TOOL_NAMES (14) + lazy (44)', () => {
     const lazyCount = Object.values(LAZY_TOOL_GROUPS).reduce((sum, names) => sum + names.length, 0);
-    expect(CORE_TOOL_NAMES.size + lazyCount).toBe(67);
-    expect(tools).toHaveLength(67);
+    expect(CORE_TOOL_NAMES.size + lazyCount).toBe(58);
+    expect(tools).toHaveLength(58);
   });
 });

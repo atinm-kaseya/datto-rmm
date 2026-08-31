@@ -10,8 +10,7 @@ import {
   listUsers,
   listAccountVariables,
   listComponents,
-  listOpenAlerts,
-  listResolvedAlerts,
+  listAlerts,
   getMeteringSummary,
 } from './account.js';
 import { createMockClient } from '../test-utils/mock-client.js';
@@ -134,6 +133,18 @@ describe('listDevices', () => {
     expect(body._enhanced.sites['site-1']).toBe('Acme Corp');
   });
 
+  it('routes to site endpoint when siteUid is provided', async () => {
+    const client = createMockClient();
+    const result = await listDevices(client, { siteUid: 'site-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
+    // siteDevices mock has 3 items (count=5 from pageDetails)
+    expect(body.count).toBe(5);
+    expect(body.data.length).toBe(3);
+  });
+
   it('returns error envelope on API failure', async () => {
     const result = await listDevices(makeErrorClient(), {});
 
@@ -210,12 +221,12 @@ describe('listComponents', () => {
   });
 });
 
-// ─── listOpenAlerts ────────────────────────────────────────────────────────────
+// ─── listAlerts ────────────────────────────────────────────────────────────────
 
-describe('listOpenAlerts', () => {
-  it('returns open alerts array with count', async () => {
+describe('listAlerts', () => {
+  it('returns open alerts account-wide by default', async () => {
     const client = createMockClient();
-    const result = await listOpenAlerts(client, {});
+    const result = await listAlerts(client, {});
 
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(true);
@@ -224,39 +235,77 @@ describe('listOpenAlerts', () => {
     expect(body.data[0].priority).toBe('Critical');
   });
 
-  it('passes muted filter', async () => {
+  it('returns resolved alerts account-wide when status=resolved', async () => {
     const client = createMockClient();
-    const result = await listOpenAlerts(client, { muted: true });
+    const result = await listAlerts(client, { status: 'resolved' });
 
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(true);
-  });
-
-  it('returns error envelope on API failure', async () => {
-    const result = await listOpenAlerts(makeErrorClient(), {});
-
-    expect(result.isError).toBe(true);
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(false);
-  });
-});
-
-// ─── listResolvedAlerts ────────────────────────────────────────────────────────
-
-describe('listResolvedAlerts', () => {
-  it('returns resolved alerts array with count', async () => {
-    const client = createMockClient();
-    const result = await listResolvedAlerts(client, {});
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(Array.isArray(body.data)).toBe(true);
     expect(body.count).toBe(5);
     expect(body.data[0].alertUid).toBe('resolved-1');
   });
 
+  it('routes to site open alerts when siteUid provided', async () => {
+    const client = createMockClient();
+    const result = await listAlerts(client, { siteUid: 'site-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.count).toBe(3);
+    expect(body.data[0].alertUid).toBe('alert-1');
+  });
+
+  it('routes to site resolved alerts when siteUid and status=resolved', async () => {
+    const client = createMockClient();
+    const result = await listAlerts(client, { siteUid: 'site-1', status: 'resolved' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.count).toBe(2);
+    expect(body.data[0].alertUid).toBe('site-resolved-1');
+  });
+
+  it('routes to device open alerts when deviceUid provided', async () => {
+    const client = createMockClient();
+    const result = await listAlerts(client, { deviceUid: 'device-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBe(2);
+    expect(body.data[0].priority).toBe('Critical');
+  });
+
+  it('routes to device resolved alerts when deviceUid and status=resolved', async () => {
+    const client = createMockClient();
+    const result = await listAlerts(client, { deviceUid: 'device-1', status: 'resolved' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data[0].alertUid).toBe('dev-resolved-1');
+  });
+
+  it('deviceUid takes precedence over siteUid', async () => {
+    const client = createMockClient();
+    // Both provided — should use device endpoint
+    const result = await listAlerts(client, { deviceUid: 'device-1', siteUid: 'site-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    // device mock returns 2 alerts
+    expect(body.data.length).toBe(2);
+  });
+
+  it('passes muted filter', async () => {
+    const client = createMockClient();
+    const result = await listAlerts(client, { muted: true });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+  });
+
   it('returns error envelope on API failure', async () => {
-    const result = await listResolvedAlerts(makeErrorClient(), {});
+    const result = await listAlerts(makeErrorClient(), {});
 
     expect(result.isError).toBe(true);
     const body = JSON.parse(result.content[0]!.text);

@@ -6,9 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getJob,
   getJobComponents,
-  getJobResults,
-  getJobStdout,
-  getJobStderr,
+  getJobStatus,
 } from './jobs.js';
 import { createMockClient } from '../test-utils/mock-client.js';
 
@@ -84,85 +82,58 @@ describe('getJobComponents', () => {
   });
 });
 
-// ─── getJobResults ─────────────────────────────────────────────────────────────
+// ─── getJobStatus ──────────────────────────────────────────────────────────────
 
-describe('getJobResults', () => {
-  it('returns job results for a device', async () => {
+describe('getJobStatus', () => {
+  it('returns job results with stdout when job is complete (Success)', async () => {
     const client = createMockClient();
-    const result = await getJobResults(client, { jobUid: 'job-1', deviceUid: 'device-1' });
+    // Default mock: jobResults has jobDeploymentStatus='Success', jobStdout has one entry
+    const result = await getJobStatus(client, { jobUid: 'job-1', deviceUid: 'device-1' });
 
+    expect(result.isError).toBeUndefined();
     const body = JSON.parse(result.content[0]!.text);
     expect(body.ok).toBe(true);
     expect(body.data).toBeDefined();
     expect(body.data.jobUid).toBe('job-1');
-    expect(body.data.status).toBe('completed');
+    expect(body.data.jobDeploymentStatus).toBe('Success');
+    expect(body.data.stdout).toBeDefined();
+    expect(Array.isArray(body.data.stdout)).toBe(true);
+    expect(body.data.stdout[0].output).toBe('Job completed successfully');
+  });
+
+  it('returns job results with stdout=null when job is not complete', async () => {
+    const client = createMockClient({
+      jobResults: {
+        jobUid: 'job-1',
+        deviceUid: 'device-1',
+        jobDeploymentStatus: 'Running',
+      } as any,
+    });
+    const result = await getJobStatus(client, { jobUid: 'job-1', deviceUid: 'device-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.jobDeploymentStatus).toBe('Running');
+    expect(body.data.stdout).toBeNull();
+  });
+
+  it('returns job results with stdout=null when job failed', async () => {
+    const client = createMockClient({
+      jobResults: {
+        jobUid: 'job-1',
+        deviceUid: 'device-1',
+        jobDeploymentStatus: 'Failure',
+      } as any,
+    });
+    const result = await getJobStatus(client, { jobUid: 'job-1', deviceUid: 'device-1' });
+
+    const body = JSON.parse(result.content[0]!.text);
+    expect(body.ok).toBe(true);
+    expect(body.data.stdout).toBeNull();
   });
 
   it('returns error envelope on API failure', async () => {
-    const result = await getJobResults(makeErrorClient(), { jobUid: 'job-1', deviceUid: 'device-1' });
-
-    expect(result.isError).toBe(true);
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(false);
-  });
-});
-
-// ─── getJobStdout ──────────────────────────────────────────────────────────────
-
-describe('getJobStdout', () => {
-  it('returns stdout entries with count', async () => {
-    const client = createMockClient();
-    const result = await getJobStdout(client, { jobUid: 'job-1', deviceUid: 'device-1' });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(Array.isArray(body.data)).toBe(true);
-    expect(body.count).toBe(1);
-    expect(body.data[0].output).toBe('Job completed successfully');
-  });
-
-  it('handles empty stdout', async () => {
-    const client = createMockClient({ jobStdout: [] });
-    const result = await getJobStdout(client, { jobUid: 'job-1', deviceUid: 'device-1' });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(body.count).toBe(0);
-  });
-
-  it('returns error envelope on API failure', async () => {
-    const result = await getJobStdout(makeErrorClient(), { jobUid: 'job-1', deviceUid: 'device-1' });
-
-    expect(result.isError).toBe(true);
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(false);
-  });
-});
-
-// ─── getJobStderr ──────────────────────────────────────────────────────────────
-
-describe('getJobStderr', () => {
-  it('returns stderr entries with count', async () => {
-    const client = createMockClient();
-    const result = await getJobStderr(client, { jobUid: 'job-1', deviceUid: 'device-1' });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(Array.isArray(body.data)).toBe(true);
-    expect(body.count).toBe(1);
-  });
-
-  it('handles empty stderr', async () => {
-    const client = createMockClient({ jobStderr: [] });
-    const result = await getJobStderr(client, { jobUid: 'job-1', deviceUid: 'device-1' });
-
-    const body = JSON.parse(result.content[0]!.text);
-    expect(body.ok).toBe(true);
-    expect(body.count).toBe(0);
-  });
-
-  it('returns error envelope on API failure', async () => {
-    const result = await getJobStderr(makeErrorClient(), { jobUid: 'job-1', deviceUid: 'device-1' });
+    const result = await getJobStatus(makeErrorClient(), { jobUid: 'job-1', deviceUid: 'device-1' });
 
     expect(result.isError).toBe(true);
     const body = JSON.parse(result.content[0]!.text);

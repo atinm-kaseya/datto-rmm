@@ -590,6 +590,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v2/device/{deviceUid}/patches": {
+        get: {
+            parameters: {
+                path: { deviceUid: string };
+                query?: { page?: number; max?: number; installStatus?: "INSTALLED" | "APPROVED_PENDING" | "NOT_APPROVED" };
+            };
+            responses: {
+                200: {
+                    content: {
+                        "application/json": components["schemas"]["PatchesPage"];
+                    };
+                };
+            };
+        };
+    };
+    "/v2/site/{siteUid}/patches": {
+        get: {
+            parameters: {
+                path: { siteUid: string };
+                query?: { page?: number; max?: number; installStatus?: "INSTALLED" | "APPROVED_PENDING" | "NOT_APPROVED" };
+            };
+            responses: {
+                200: {
+                    content: {
+                        "application/json": components["schemas"]["PatchesPage"];
+                    };
+                };
+            };
+        };
+    };
     "/v2/device/macAddress/{macAddress}": {
         parameters: {
             query?: never;
@@ -1927,6 +1957,23 @@ export interface components {
         ComponentsPage: {
             pageDetails?: components["schemas"]["PaginationData"];
             components?: components["schemas"]["Component"][];
+        };
+        /** @description Patch data */
+        Patch: {
+            /** Format: int64 */
+            id?: number;
+            title?: string;
+            severity?: string;
+            status?: string;
+            installStatus?: string;
+            /** Format: date-time */
+            releaseDate?: string;
+            kb?: string;
+        };
+        /** @description Patches page */
+        PatchesPage: {
+            pageDetails?: components["schemas"]["PaginationData"];
+            patches?: components["schemas"]["Patch"][];
         };
     };
     responses: never;
