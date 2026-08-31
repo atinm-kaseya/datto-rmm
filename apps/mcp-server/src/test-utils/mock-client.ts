@@ -664,7 +664,7 @@ const defaultMockResponses: MockResponses = {
     defaultValue: 100,
   } as any,
   activityLogs: {
-    pageDetails: { count: 10, prevPageUrl: undefined, nextPageUrl: undefined },
+    pageDetails: { count: 2, totalCount: 42, prevPageUrl: undefined, nextPageUrl: 'https://api.example.com/v2/activity-logs?searchAfter=1662554037000%2Cabc123&page=next&size=2' },
     activities: [
       {
         id: 1,
