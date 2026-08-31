@@ -384,6 +384,26 @@ export const tools: ToolDefinition[] = [
     handler: (client, args) => compositeTools.getAccountAnalytics(client, args as any),
   },
 
+  // ==================== META TOOL ====================
+  {
+    name: 'rmm_load_tools',
+    description: 'Load a group of Tier 2 tools for this session. Call before using any Tier 2 tool. Available groups: account, sites, devices, alerts, jobs, audit, activity, filters, system, variables. Returns the list of tools now available.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        group: {
+          type: 'string',
+          enum: ['account', 'sites', 'devices', 'alerts', 'jobs', 'audit', 'activity', 'filters', 'system', 'variables'],
+          description: 'Tool group to activate',
+        },
+      },
+      required: ['group'],
+    },
+    handler: async (_client, _args) => ({
+      content: [{ type: 'text' as const, text: JSON.stringify({ ok: true, data: { message: 'handled by server' } }) }],
+    }),
+  },
+
   // ==================== 🔧 TIER 2: API-LEVEL TOOLS (ADVANCED) ====================
   
   // Account Tools
@@ -1128,4 +1148,65 @@ export const tools: ToolDefinition[] = [
  */
 export function getTool(name: string): ToolDefinition | undefined {
   return tools.find((t) => t.name === name);
+}
+
+// Core tool names (always loaded — 13 composite + rmm_load_tools)
+export const CORE_TOOL_NAMES = new Set<string>([
+  'rmm_get_account_dashboard',
+  'rmm_find_sites_with_issues',
+  'rmm_search_devices',
+  'rmm_get_site_health',
+  'rmm_get_device_health',
+  'rmm_diagnose_device_issue',
+  'rmm_investigate_alert',
+  'rmm_get_alert_summary',
+  'rmm_list_site_devices',
+  'rmm_get_site_alerts',
+  'rmm_run_site_component',
+  'rmm_bulk_update_site_devices',
+  'rmm_get_account_analytics',
+  'rmm_load_tools',
+]);
+
+// Lazy group membership — maps group name to the tool names it contains
+export const LAZY_TOOL_GROUPS: Record<string, string[]> = {
+  account: [
+    'rmm_get_account', 'rmm_list_sites', 'rmm_list_devices', 'rmm_list_users',
+    'rmm_list_account_variables', 'rmm_list_components', 'rmm_list_open_alerts',
+    'rmm_list_resolved_alerts', 'rmm_get_api_metering_summary',
+  ],
+  sites: [
+    'rmm_get_site', 'rmm_get_site_devices', 'rmm_list_site_open_alerts',
+    'rmm_list_site_resolved_alerts', 'rmm_list_site_variables', 'rmm_get_site_settings',
+    'rmm_list_site_filters', 'rmm_create_site', 'rmm_update_site',
+    'rmm_update_site_proxy', 'rmm_delete_site_proxy',
+  ],
+  devices: [
+    'rmm_get_device', 'rmm_get_device_by_id', 'rmm_get_device_by_mac',
+    'rmm_list_device_open_alerts', 'rmm_list_device_resolved_alerts',
+    'rmm_move_device', 'rmm_create_quick_job', 'rmm_set_device_udf', 'rmm_set_device_warranty',
+  ],
+  alerts: ['rmm_get_alert', 'rmm_resolve_alert'],
+  jobs: ['rmm_get_job', 'rmm_get_job_components', 'rmm_get_job_results', 'rmm_get_job_stdout', 'rmm_get_job_stderr'],
+  audit: ['rmm_get_device_audit', 'rmm_get_device_software', 'rmm_get_device_audit_by_mac', 'rmm_get_esxi_audit', 'rmm_get_printer_audit'],
+  activity: ['rmm_get_activity_logs'],
+  filters: ['rmm_list_default_filters', 'rmm_list_custom_filters'],
+  system: ['rmm_get_system_status', 'rmm_get_rate_limit', 'rmm_get_pagination_config'],
+  variables: [
+    'rmm_create_account_variable', 'rmm_update_account_variable', 'rmm_delete_account_variable',
+    'rmm_create_site_variable', 'rmm_update_site_variable', 'rmm_delete_site_variable',
+  ],
+};
+
+// Reverse lookup: tool name → group name
+const _toolGroupMap: Record<string, string> = {};
+for (const [group, names] of Object.entries(LAZY_TOOL_GROUPS)) {
+  for (const name of names) {
+    _toolGroupMap[name] = group;
+  }
+}
+
+/** Returns the lazy group name for a tool, or null if it's in the core group. */
+export function getToolGroup(name: string): string | null {
+  return _toolGroupMap[name] ?? null;
 }
