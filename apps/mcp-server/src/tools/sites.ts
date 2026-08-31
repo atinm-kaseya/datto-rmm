@@ -189,6 +189,22 @@ export async function createSite(
   }
 ): Promise<ToolResult> {
   try {
+    // Duplicate check: look for an existing site with the same name
+    const checkRes = await client.GET('/v2/account/sites', {
+      params: { query: { siteName: args.name, max: 1 } },
+    });
+    const existing = handleResponse<T.SitesPage>(checkRes);
+    const match = (existing.sites ?? []).find(
+      (s) => s.name?.toLowerCase() === args.name.toLowerCase()
+    );
+    if (match) {
+      return errorResponse({
+        error: 'duplicate_detected',
+        detail: `Site "${args.name}" already exists (uid: ${match.uid})`,
+        code: 409,
+      });
+    }
+
     const response = await client.PUT('/v2/site', {
       body: {
         name: args.name,
