@@ -597,7 +597,7 @@ export const tools: ToolDefinition[] = [
         onDemand: { type: 'boolean', description: 'Enable/disable on-demand mode' },
         splashtopAutoInstall: { type: 'boolean', description: 'Enable/disable Splashtop auto-install' },
       },
-      required: ['siteUid'],
+      required: ['siteUid', 'name'],
     },
     handler: (client, args) => siteTools.updateSite(client, args as Parameters<typeof siteTools.updateSite>[1]),
   },
