@@ -1,11 +1,11 @@
 import type { Redis } from 'ioredis';
-import type { SessionState, CachedToken } from './types.js';
+import type { SessionState, CachedToken, ISessionStore } from './types.js';
 
 const SESSION_TTL = 24 * 60 * 60; // 24h in seconds
 const MIN_TOKEN_TTL = 60; // seconds
 const TOKEN_BUFFER_MS = 5 * 60 * 1000;
 
-export class SessionStore {
+export class SessionStore implements ISessionStore {
   constructor(private readonly redis: Redis) {}
 
   async getSession(sessionId: string): Promise<SessionState | null> {

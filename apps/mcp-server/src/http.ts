@@ -2,12 +2,12 @@ import express from 'express';
 import { createHash, randomUUID } from 'node:crypto';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createDattoClient, OAuthTokenManager, getTokenEndpoint } from 'datto-rmm-api';
-import { SessionStore } from './session/store.js';
+import type { ISessionStore } from './session/types.js';
 import { createMcpServer } from './server.js';
 import { parsePlatform } from './config.js';
 import type { HttpConfig } from './config.js';
 
-export function createHttpApp(store: SessionStore, cfg: HttpConfig): express.Application {
+export function createHttpApp(store: ISessionStore, cfg: HttpConfig): express.Application {
   const app = express();
   app.use(express.json());
 

@@ -25,19 +25,27 @@ async function main() {
     }
 
     if (process.env['MCP_MODE'] === 'http' || process.env['HTTP_PORT']) {
-      const { Redis } = await import('ioredis');
-      const { SessionStore } = await import('./session/store.js');
       const { createHttpApp } = await import('./http.js');
 
       const redisCfg = config.http!.redis;
-      const redis = new Redis({
-        host: redisCfg.host,
-        port: redisCfg.port,
-        password: redisCfg.password,
-        tls: redisCfg.tls ? {} : undefined,
-      });
+      let store;
+      if (process.env['REDIS_HOST']) {
+        const { Redis } = await import('ioredis');
+        const { SessionStore } = await import('./session/store.js');
+        const redis = new Redis({
+          host: redisCfg.host,
+          port: redisCfg.port,
+          password: redisCfg.password,
+          tls: redisCfg.tls ? {} : undefined,
+        });
+        store = new SessionStore(redis);
+        console.log(`Using Redis session store (${redisCfg.host}:${redisCfg.port})`);
+      } else {
+        const { LocalSessionStore } = await import('./session/local-store.js');
+        store = new LocalSessionStore();
+        console.log('Using local in-memory session store');
+      }
 
-      const store = new SessionStore(redis);
       const app = createHttpApp(store, config.http!);
       app.listen(config.http!.port, '0.0.0.0', () => {
         console.log(`MCP HTTP server listening on :${config.http!.port}`);
