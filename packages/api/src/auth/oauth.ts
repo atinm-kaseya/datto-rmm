@@ -109,6 +109,10 @@ export class OAuthTokenManager {
     return this.token;
   }
 
+  getExpiresAt(): number {
+    return this.expiresAt;
+  }
+
   /**
    * Clear the cached token.
    */

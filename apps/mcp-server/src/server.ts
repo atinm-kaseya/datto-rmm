@@ -39,19 +39,12 @@ ERRORS: on rate_limited, narrow query (date range or site filter) and retry once
 /**
  * Create and configure the MCP server.
  */
-export function createServer(config: ServerConfig): { server: Server; client: DattoClient } {
-  // Create the Datto API client
-  const client = createDattoClient({
-    platform: config.platform,
-    auth: {
-      apiKey: config.apiKey,
-      apiSecret: config.apiSecret,
-    },
-  });
+export function createMcpServer(
+  client: DattoClient,
+  initialLoadedGroups: Set<string> = new Set(),
+): { server: Server; getLoadedGroups: () => Set<string> } {
+  const loadedGroups = new Set<string>(initialLoadedGroups);
 
-  const loadedGroups = new Set<string>();
-
-  // Create MCP server
   const server = new Server(
     {
       name: 'datto-rmm',
@@ -67,7 +60,6 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
     }
   );
 
-  // Register tool handlers
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const activeTools = tools.filter((t) => {
       if (CORE_TOOL_NAMES.has(t.name)) return true;
@@ -86,7 +78,6 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
-    // Handle rmm_load_tools meta-tool
     if (name === 'rmm_load_tools') {
       const group = (args as Record<string, unknown>)?.['group'] as string | undefined;
       if (!group || !LAZY_TOOL_GROUPS[group]) {
@@ -106,7 +97,6 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
     const tool = getTool(name);
 
     if (!tool) {
-      // Check if it's a lazy tool that hasn't been loaded yet
       const group = getToolGroup(name);
       if (group) {
         return {
@@ -120,7 +110,6 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
       };
     }
 
-    // Check if tool is lazy and its group hasn't been loaded
     const group = getToolGroup(name);
     if (group && !loadedGroups.has(group)) {
       return {
@@ -141,7 +130,6 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
     }
   });
 
-  // Register prompt handlers
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
     return {
       prompts: [
@@ -168,7 +156,6 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
     };
   });
 
-  // Register resource handlers
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
     return { resources };
   });
@@ -182,19 +169,26 @@ export function createServer(config: ServerConfig): { server: Server; client: Da
     return readResource(client, uri);
   });
 
-  return { server, client };
+  return { server, getLoadedGroups: () => loadedGroups };
 }
 
 /**
  * Run the server with stdio transport.
  */
-export async function runServer(config: ServerConfig): Promise<void> {
-  const { server } = createServer(config);
+export async function runServer(config: ServerConfig & { apiKey: string; apiSecret: string }): Promise<void> {
+  const client = createDattoClient({
+    platform: config.platform ?? 'merlot',
+    auth: {
+      apiKey: config.apiKey,
+      apiSecret: config.apiSecret,
+    },
+  });
+
+  const { server } = createMcpServer(client);
   const transport = new StdioServerTransport();
 
   await server.connect(transport);
 
-  // Handle graceful shutdown
   process.on('SIGINT', async () => {
     await server.close();
     process.exit(0);
