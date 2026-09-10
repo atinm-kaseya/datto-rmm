@@ -9,9 +9,12 @@ import { OAuthTokenManager, type OAuthCredentials } from './auth/oauth.js';
  */
 export interface DattoClientOptions {
   /**
-   * The Datto RMM platform to connect to.
+   * Selects the default API and token URLs.
+   *
+   * Optional, but only when `baseUrl` AND `tokenEndpoint` are both supplied —
+   * a local or internal deployment has no platform to derive URLs from.
    */
-  platform: Platform;
+  platform?: Platform;
 
   /**
    * Authentication configuration.
@@ -28,10 +31,21 @@ export interface DattoClientOptions {
   middleware?: Middleware[];
 
   /**
-   * Custom base URL override.
+   * Custom base URL override for data calls.
    * If provided, takes precedence over the platform URL.
    */
   baseUrl?: string;
+
+  /**
+   * Custom OAuth token endpoint override.
+   *
+   * Independent of `baseUrl` on purpose. Normally the token endpoint is
+   * derived from the platform URL, but the auth server (Security-service) and
+   * the data API (aem-api) are separate services — locally they are different
+   * ports entirely — so deriving one from the other is wrong whenever either
+   * is overridden.
+   */
+  tokenEndpoint?: string;
 }
 
 /**
@@ -69,7 +83,11 @@ export type DattoClient = Client<paths>;
  * ```
  */
 export function createDattoClient(options: DattoClientOptions): DattoClient {
-  const baseUrl = options.baseUrl ?? getPlatformUrl(options.platform);
+  const baseUrl =
+    options.baseUrl ?? (options.platform ? getPlatformUrl(options.platform) : undefined);
+  if (!baseUrl) {
+    throw new Error('createDattoClient requires either a platform or an explicit baseUrl');
+  }
 
   // Resolve auth config
   let authConfig: AuthConfig;
@@ -78,7 +96,14 @@ export function createDattoClient(options: DattoClientOptions): DattoClient {
     authConfig = options.auth;
   } else {
     // OAuth credentials - create token manager
-    const tokenEndpoint = getTokenEndpoint(options.platform);
+    const tokenEndpoint =
+      options.tokenEndpoint ??
+      (options.platform ? getTokenEndpoint(options.platform) : undefined);
+    if (!tokenEndpoint) {
+      throw new Error(
+        'createDattoClient requires either a platform or an explicit tokenEndpoint',
+      );
+    }
     const tokenManager = new OAuthTokenManager(options.auth, tokenEndpoint);
     authConfig = tokenManager.toAuthConfig();
   }
