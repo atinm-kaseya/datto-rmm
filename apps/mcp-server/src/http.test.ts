@@ -9,8 +9,7 @@ vi.mock('datto-rmm-api', async (importOriginal) => {
     ...actual,
     createDattoClient: vi.fn(() => ({})),
     OAuthTokenManager: vi.fn().mockImplementation(() => ({
-      refreshToken: vi.fn().mockResolvedValue('mock-access-token'),
-      getExpiresAt: vi.fn().mockReturnValue(Date.now() + 3600_000),
+      mintToken: vi.fn().mockResolvedValue('mock-access-token'),
     })),
     getTokenEndpoint: vi.fn().mockReturnValue('https://mock.token.endpoint'),
   };

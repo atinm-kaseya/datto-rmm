@@ -29,11 +29,11 @@ export function createHttpApp(store: ISessionStore, cfg: HttpConfig): express.Ap
     const credHash  = createHash('sha256').update(`${apiKey}:${apiSecret}`).digest('hex');
     let cachedToken = await store.getToken(credHash);
 
-    if (!cachedToken || Date.now() >= cachedToken.expiresAt - 5 * 60 * 1000) {
+    if (!cachedToken || Date.now() >= cachedToken.expiresAt) {
       const parsedPlatform = parsePlatform(platform);
       const mgr = new OAuthTokenManager({ apiKey, apiSecret }, getTokenEndpoint(parsedPlatform));
-      const accessToken = await mgr.refreshToken();
-      cachedToken = { accessToken, expiresAt: mgr.getExpiresAt() };
+      const accessToken = await mgr.mintToken();
+      cachedToken = { accessToken, expiresAt: Date.now() + 3600_000 };
       await store.saveToken(credHash, cachedToken);
     }
 
