@@ -42,9 +42,9 @@ describe('OAuthTokenManager', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: expect.stringMatching(/^Basic /),
+        Authorization: 'Basic cHVibGljLWNsaWVudDpwdWJsaWM=', // public-client:public
       },
-      body: 'grant_type=client_credentials',
+      body: 'grant_type=password&username=test-api-key&password=test-api-secret',
     });
   });
 
@@ -73,11 +73,11 @@ describe('OAuthTokenManager', () => {
     expect(fetch).toHaveBeenCalledTimes(1); // Still 1
   });
 
-  it('should refresh token when close to expiry', async () => {
+  it('should refresh token after it expires', async () => {
     const mockResponse1 = {
       access_token: 'token-1',
       token_type: 'Bearer',
-      expires_in: 360, // 6 minutes
+      expires_in: 60, // 1 minute
     };
 
     const mockResponse2 = {
@@ -103,10 +103,10 @@ describe('OAuthTokenManager', () => {
     const token1 = await manager.getToken();
     expect(token1).toBe('token-1');
 
-    // Advance time past the 5 minute buffer (token has 6 min, buffer is 5 min)
-    vi.advanceTimersByTime(2 * 60 * 1000); // 2 minutes
+    // Advance time past full token lifetime
+    vi.advanceTimersByTime(61 * 1000); // 61 seconds — token expired
 
-    // Should refresh because we're within 5 min of expiry
+    // Should re-mint because token actually expired
     const token2 = await manager.getToken();
     expect(token2).toBe('token-2');
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -121,7 +121,7 @@ describe('OAuthTokenManager', () => {
 
     const manager = new OAuthTokenManager(mockCredentials, mockTokenEndpoint);
 
-    await expect(manager.getToken()).rejects.toThrow('OAuth token request failed: 401');
+    await expect(manager.getToken()).rejects.toThrow('HTTP 401 OAuth token request rejected - check the API key and secret');
   });
 
   it('should deduplicate concurrent refresh requests', async () => {

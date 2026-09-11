@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { normalizePagination } from '../utils/pagination.js';
+import { handleResponse, successResponse, errorResponse, mapApiError, extractPageMeta, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -14,19 +14,9 @@ export async function getJob(client: DattoClient, args: { jobUid: string }): Pro
       },
     });
     const data = handleResponse<T.Job>(response);
-
-    const lines = [
-      `# Job: ${data.name ?? 'Unknown'}`,
-      '',
-      `**UID:** ${data.uid}`,
-      `**ID:** ${data.id}`,
-      `**Status:** ${data.status ?? 'N/A'}`,
-      `**Created:** ${data.dateCreated ?? 'N/A'}`,
-    ];
-
-    return successResult(lines.join('\n'));
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching job: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -49,45 +39,23 @@ export async function getJobComponents(
         },
       },
     });
-    const data = handleResponse<T.JobComponentsPage>(response);
-
-    if (!data.jobComponents || data.jobComponents.length === 0) {
-      return successResult('No components found for this job');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Job Components (${pageInfo.count} total)`,
-      '',
-    ];
-
-    for (const component of data.jobComponents) {
-      lines.push(`## ${component.name ?? 'Unknown'}`);
-      lines.push(`- **UID:** ${component.uid}`);
-      if (component.variables && component.variables.length > 0) {
-        lines.push('- **Variables:**');
-        for (const variable of component.variables) {
-          lines.push(`  - ${variable.name}: ${variable.value ?? 'N/A'}`);
-        }
-      }
-      lines.push('');
-    }
-
-    return successResult(lines.join('\n'));
+    const page = handleResponse<T.JobComponentsPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.jobComponents ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching job components: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
 /**
- * Get job results for a device.
+ * Get job status for a device, including stdout if the job is complete.
  */
-export async function getJobResults(
+export async function getJobStatus(
   client: DattoClient,
   args: { jobUid: string; deviceUid: string }
 ): Promise<ToolResult> {
   try {
-    const response = await client.GET('/v2/job/{jobUid}/results/{deviceUid}', {
+    const resultsResponse = await client.GET('/v2/job/{jobUid}/results/{deviceUid}', {
       params: {
         path: {
           jobUid: args.jobUid,
@@ -95,123 +63,34 @@ export async function getJobResults(
         },
       },
     });
-    const data = handleResponse<T.JobResults>(response);
+    const results = handleResponse<T.JobResults>(resultsResponse);
 
-    const lines = [
-      '# Job Results',
-      '',
-      `**Job UID:** ${data.jobUid ?? args.jobUid}`,
-      `**Device UID:** ${data.deviceUid ?? args.deviceUid}`,
-      `**Ran On:** ${data.ranOn ?? 'N/A'}`,
-      `**Status:** ${data.jobDeploymentStatus ?? 'N/A'}`,
-      '',
-    ];
+    const status = results.jobDeploymentStatus;
+    let stdoutData: T.JobStdData[] | null = null;
+    let stderrData: T.JobStdData[] | null = null;
 
-    if (data.componentResults && data.componentResults.length > 0) {
-      lines.push('## Component Results');
-      lines.push('');
-      for (const result of data.componentResults) {
-        lines.push(`### ${result.componentName ?? 'Unknown Component'}`);
-        lines.push(`- **Status:** ${result.componentStatus ?? 'N/A'}`);
-        lines.push(`- **Warnings:** ${result.numberOfWarnings ?? 0}`);
-        lines.push(`- **Has StdOut:** ${result.hasStdOut ? 'Yes' : 'No'}`);
-        lines.push(`- **Has StdErr:** ${result.hasStdErr ? 'Yes' : 'No'}`);
-        lines.push('');
+    if (status === 'Success' || status === 'Warning') {
+      try {
+        const stdoutResponse = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stdout', {
+          params: { path: { jobUid: args.jobUid, deviceUid: args.deviceUid } },
+        });
+        stdoutData = handleResponse<T.JobStdData[]>(stdoutResponse);
+      } catch {
+        stdoutData = null;
+      }
+    } else if (status === 'Failure' || status === 'Expired' || status === 'Retired') {
+      try {
+        const stderrResponse = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stderr', {
+          params: { path: { jobUid: args.jobUid, deviceUid: args.deviceUid } },
+        });
+        stderrData = handleResponse<T.JobStdData[]>(stderrResponse);
+      } catch {
+        stderrData = null;
       }
     }
 
-    return successResult(lines.join('\n'));
+    return successResponse({ data: { ...results, stdout: stdoutData, stderr: stderrData }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching job results: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
-
-/**
- * Get job stdout for a device.
- */
-export async function getJobStdout(
-  client: DattoClient,
-  args: { jobUid: string; deviceUid: string }
-): Promise<ToolResult> {
-  try {
-    const response = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stdout', {
-      params: {
-        path: {
-          jobUid: args.jobUid,
-          deviceUid: args.deviceUid,
-        },
-      },
-    });
-    const data = handleResponse<T.JobStdData[]>(response);
-
-    if (data.length === 0) {
-      return successResult('No stdout output for this job/device');
-    }
-
-    const lines = [
-      '# Job Stdout',
-      '',
-      `**Job UID:** ${args.jobUid}`,
-      `**Device UID:** ${args.deviceUid}`,
-      '',
-      '```',
-    ];
-
-    for (const entry of data) {
-      if (entry.stdData) {
-        lines.push(entry.stdData);
-      }
-    }
-
-    lines.push('```');
-
-    return successResult(lines.join('\n'));
-  } catch (err) {
-    return errorResult(`Error fetching job stdout: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
-
-/**
- * Get job stderr for a device.
- */
-export async function getJobStderr(
-  client: DattoClient,
-  args: { jobUid: string; deviceUid: string }
-): Promise<ToolResult> {
-  try {
-    const response = await client.GET('/v2/job/{jobUid}/results/{deviceUid}/stderr', {
-      params: {
-        path: {
-          jobUid: args.jobUid,
-          deviceUid: args.deviceUid,
-        },
-      },
-    });
-    const data = handleResponse<T.JobStdData[]>(response);
-
-    if (data.length === 0) {
-      return successResult('No stderr output for this job/device');
-    }
-
-    const lines = [
-      '# Job Stderr',
-      '',
-      `**Job UID:** ${args.jobUid}`,
-      `**Device UID:** ${args.deviceUid}`,
-      '',
-      '```',
-    ];
-
-    for (const entry of data) {
-      if (entry.stdData) {
-        lines.push(entry.stdData);
-      }
-    }
-
-    lines.push('```');
-
-    return successResult(lines.join('\n'));
-  } catch (err) {
-    return errorResult(`Error fetching job stderr: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }

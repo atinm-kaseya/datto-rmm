@@ -1,5 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { handleVoidResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { handleResponse, handleVoidResponse, successResponse, errorResponse, mapApiError, extractPageMeta, type ToolResult } from '../utils/response.js';
+import type * as T from '../types.js';
 
 /**
  * Create an account variable.
@@ -9,6 +10,27 @@ export async function createAccountVariable(
   args: { name: string; value: string; masked?: boolean }
 ): Promise<ToolResult> {
   try {
+    // Duplicate check: look for an existing variable with the same name
+    const checkRes = await client.GET('/v2/account/variables', {
+      params: { query: { max: 250 } },
+    });
+    const existing = handleResponse<T.VariablesPage>(checkRes);
+    const { next_page } = extractPageMeta(existing);
+    const match = (existing.variables ?? []).find(
+      (v) => v.name?.toLowerCase() === args.name.toLowerCase()
+    );
+    if (match || next_page) {
+      // If there are more pages and no match yet, do a second pass isn't worth it;
+      // the API will return 409 naturally if a true duplicate exists server-side.
+      if (match) {
+        return errorResponse({
+          error: 'duplicate_detected',
+          detail: `Account variable "${args.name}" already exists (id: ${match.id})`,
+          code: 409,
+        });
+      }
+    }
+
     const response = await client.PUT('/v2/account/variable', {
       body: {
         name: args.name,
@@ -17,10 +39,9 @@ export async function createAccountVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Account variable "${args.name}" created successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error creating account variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -43,10 +64,9 @@ export async function updateAccountVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Account variable ${args.variableId} updated successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error updating account variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -64,10 +84,9 @@ export async function deleteAccountVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Account variable ${args.variableId} deleted successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error deleting account variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -79,6 +98,22 @@ export async function createSiteVariable(
   args: { siteUid: string; name: string; value: string; masked?: boolean }
 ): Promise<ToolResult> {
   try {
+    // Duplicate check: look for an existing variable with the same name on this site
+    const checkRes = await client.GET('/v2/site/{siteUid}/variables', {
+      params: { path: { siteUid: args.siteUid }, query: { max: 250 } },
+    });
+    const existing = handleResponse<T.VariablesPage>(checkRes);
+    const match = (existing.variables ?? []).find(
+      (v) => v.name?.toLowerCase() === args.name.toLowerCase()
+    );
+    if (match) {
+      return errorResponse({
+        error: 'duplicate_detected',
+        detail: `Site variable "${args.name}" already exists on this site (id: ${match.id})`,
+        code: 409,
+      });
+    }
+
     const response = await client.PUT('/v2/site/{siteUid}/variable', {
       params: {
         path: { siteUid: args.siteUid },
@@ -90,10 +125,9 @@ export async function createSiteVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site variable "${args.name}" created successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error creating site variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -119,10 +153,9 @@ export async function updateSiteVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site variable ${args.variableId} updated successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error updating site variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -143,10 +176,9 @@ export async function deleteSiteVariable(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site variable ${args.variableId} deleted successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error deleting site variable: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -178,10 +210,9 @@ export async function updateSiteProxy(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site ${args.siteUid} proxy settings updated successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error updating site proxy: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -199,9 +230,8 @@ export async function deleteSiteProxy(
       },
     });
     handleVoidResponse(response);
-
-    return successResult(`Site ${args.siteUid} proxy settings deleted successfully`);
+    return successResponse({ data: { success: true }, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error deleting site proxy: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }

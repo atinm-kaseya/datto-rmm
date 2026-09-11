@@ -1,0 +1,234 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Datto RMM MCP Server — ECS Fargate deployment.
+  Attaches to the existing ALB at sandbox.rmm.datto.com on path /mcp*.
+  Per-session DRMM credentials are supplied by MCP clients via request headers;
+  NO credentials are stored in the task definition or image (SECURITY-12).
+
+Parameters:
+  ImageUri:
+    Type: String
+    Description: >
+      Full ECR image URI including git-SHA tag, e.g.
+      123456789012.dkr.ecr.us-east-1.amazonaws.com/drmm-mcp-server:abc1234
+      Never use :latest (SECURITY-10).
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where the ECS service and ALB already live.
+
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnets for the ECS Fargate tasks (no direct internet access needed).
+
+  AlbListenerArn:
+    Type: String
+    Description: ARN of the existing HTTPS listener on the sandbox.rmm.datto.com ALB.
+
+  AlbSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group attached to the existing ALB (used to allow ALB→task traffic).
+
+  EcsClusterName:
+    Type: String
+    Default: sandbox-rmm
+    Description: Name of the existing ECS cluster.
+
+  AgentId:
+    Type: String
+    Default: drmm-mcp-server
+    Description: Value for X-Datto-Mcp-Agent-Id propagated on all outbound DRMM API calls.
+
+  ContainerPort:
+    Type: Number
+    Default: 8080
+
+  TaskCpu:
+    Type: String
+    Default: "512"
+
+  TaskMemory:
+    Type: String
+    Default: "1024"
+
+  DesiredCount:
+    Type: Number
+    Default: 1
+
+  LogRetentionDays:
+    Type: Number
+    Default: 14
+
+Resources:
+
+  # ── CloudWatch log group ─────────────────────────────────────────────────
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/drmm-mcp-server"
+      RetentionInDays: !Ref LogRetentionDays
+
+  # ── Task execution role (ECR pull + CloudWatch logs) ─────────────────────
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "drmm-mcp-server-execution-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # ── Task role (least-privilege — service makes no AWS API calls) ──────────
+  # SECURITY-06: task role has no permissions because the container only makes
+  # outbound HTTPS calls to the DRMM REST API, not to any AWS service.
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "drmm-mcp-server-task-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      # No policies — least-privilege (SECURITY-06)
+
+  # ── Security group for the ECS tasks ─────────────────────────────────────
+  TaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: drmm-mcp-server ECS tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ContainerPort
+          ToPort: !Ref ContainerPort
+          SourceSecurityGroupId: !Ref AlbSecurityGroupId
+          Description: Allow ALB to reach container
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Outbound HTTPS to DRMM API
+
+  # ── ALB target group ─────────────────────────────────────────────────────
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: drmm-mcp-server
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckPath: /mcp/health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  # ── ALB listener rule: /mcp* → this target group ─────────────────────────
+  ListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref AlbListenerArn
+      Priority: 100
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /mcp*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # ── ECS task definition ───────────────────────────────────────────────────
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: drmm-mcp-server
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: drmm-mcp-server
+          Image: !Ref ImageUri
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+              Protocol: tcp
+          Command:
+            - "--transport"
+            - "sse"
+            - "--port"
+            - !Sub "${ContainerPort}"
+            - "--agent-id"
+            - !Ref AgentId
+            - "--log-level"
+            - "info"
+          # SECURITY-12: NO DATTO_API_KEY / DATTO_API_SECRET env vars.
+          # Credentials are per-session, supplied by MCP clients in headers.
+          Environment:
+            - Name: RUST_LOG
+              Value: "info"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - "curl -sf http://localhost:8080/health || exit 1"
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 10
+          ReadonlyRootFilesystem: true
+          User: "10000"
+
+  # ── ECS service ───────────────────────────────────────────────────────────
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: ListenerRule
+    Properties:
+      ServiceName: drmm-mcp-server
+      Cluster: !Ref EcsClusterName
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets: !Ref PrivateSubnetIds
+          SecurityGroups:
+            - !GetAtt TaskSecurityGroup.GroupId
+      LoadBalancers:
+        - ContainerName: drmm-mcp-server
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroup
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+
+Outputs:
+  ServiceName:
+    Value: !GetAtt Service.Name
+    Description: ECS service name
+
+  TargetGroupArn:
+    Value: !Ref TargetGroup
+    Description: ALB target group ARN
+
+  McpEndpoint:
+    Value: "https://sandbox.rmm.datto.com/mcp"
+    Description: MCP server endpoint (after ALB listener rule is active)

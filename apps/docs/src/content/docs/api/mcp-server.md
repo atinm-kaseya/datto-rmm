@@ -70,7 +70,7 @@ node dist/index.js
 
 | Tool | Description |
 |------|-------------|
-| `get-account` | Get account details and device summary |
+| `rmm_get_account` | Get account details and device summary |
 | `list-account-sites` | List all sites in the account |
 | `list-account-devices` | List all devices in the account |
 | `list-account-open-alerts` | List all open alerts |
@@ -82,73 +82,73 @@ node dist/index.js
 
 | Tool | Description |
 |------|-------------|
-| `get-site` | Get site details by UID |
-| `list-site-devices` | List devices in a site |
-| `list-site-open-alerts` | List open alerts for a site |
-| `list-site-resolved-alerts` | List resolved alerts for a site |
-| `create-site` | Create a new site |
-| `update-site` | Update site settings |
+| `rmm_get_site` | Get site details by UID |
+| `rmm_list_site_devices` | List devices in a site |
+| `rmm_list_site_open_alerts` | List open alerts for a site |
+| `rmm_list_site_resolved_alerts` | List resolved alerts for a site |
+| `rmm_create_site` | Create a new site |
+| `rmm_update_site` | Update site settings |
 | `set-site-proxy` | Configure site proxy settings |
-| `delete-site-proxy` | Remove site proxy settings |
-| `get-site-settings` | Get site settings |
-| `get-site-variables` | Get site variables |
+| `rmm_delete_site_proxy` | Remove site proxy settings |
+| `rmm_get_site_settings` | Get site settings |
+| `rmm_get_site-variables` | Get site variables |
 | `set-site-variable` | Set a site variable |
-| `delete-site-variable` | Delete a site variable |
+| `rmm_delete_site_variable` | Delete a site variable |
 
 ### Device Tools
 
 | Tool | Description |
 |------|-------------|
-| `get-device` | Get device details by UID |
-| `get-device-by-id` | Get device by numeric ID |
-| `get-device-by-mac` | Find devices by MAC address |
-| `list-device-open-alerts` | List open alerts for a device |
-| `list-device-resolved-alerts` | List resolved alerts for a device |
-| `move-device` | Move device to another site |
-| `create-quick-job` | Run a component on a device |
-| `set-device-udf` | Set user-defined fields |
-| `set-device-warranty` | Set warranty date |
+| `rmm_get_device` | Get device details by UID |
+| `rmm_get_device_by_id` | Get device by numeric ID |
+| `rmm_get_device_by_mac` | Find devices by MAC address |
+| `rmm_list_device_open_alerts` | List open alerts for a device |
+| `rmm_list_device_resolved_alerts` | List resolved alerts for a device |
+| `rmm_move_device` | Move device to another site |
+| `rmm_create_quick_job` | Run a component on a device |
+| `rmm_set_device_udf` | Set user-defined fields |
+| `rmm_set_device_warranty` | Set warranty date |
 
 ### Alert Tools
 
 | Tool | Description |
 |------|-------------|
-| `get-alert` | Get alert details |
-| `resolve-alert` | Resolve an alert |
+| `rmm_get_alert` | Get alert details |
+| `rmm_resolve_alert` | Resolve an alert |
 
 ### Job Tools
 
 | Tool | Description |
 |------|-------------|
-| `get-job` | Get job details |
-| `get-job-components` | List job components |
-| `get-job-results` | Get job execution results |
-| `get-job-stdout` | Get job standard output |
-| `get-job-stderr` | Get job error output |
+| `rmm_get_job` | Get job details |
+| `rmm_get_job_components` | List job components |
+| `rmm_get_job_results` | Get job execution results |
+| `rmm_get_job_stdout` | Get job standard output |
+| `rmm_get_job_stderr` | Get job error output |
 
 ### Audit Tools
 
 | Tool | Description |
 |------|-------------|
-| `get-device-audit` | Get device hardware/software audit |
-| `get-device-software` | List installed software |
-| `get-device-audit-by-mac` | Get audit data by MAC address |
-| `get-esxi-audit` | Get ESXi host audit data |
-| `get-printer-audit` | Get printer audit data |
+| `rmm_get_device_audit` | Get device hardware/software audit |
+| `rmm_get_device_software` | List installed software |
+| `rmm_get_device_audit_by_mac` | Get audit data by MAC address |
+| `rmm_get_esxi_audit` | Get ESXi host audit data |
+| `rmm_get_printer_audit` | Get printer audit data |
 
 ### Activity Tools
 
 | Tool | Description |
 |------|-------------|
-| `get-activity-logs` | Get activity/audit logs |
+| `rmm_get_activity_logs` | Get activity/audit logs |
 
 ### System Tools
 
 | Tool | Description |
 |------|-------------|
-| `get-system-status` | Get API system status |
-| `get-rate-limit` | Get current rate limit status |
-| `get-pagination-config` | Get pagination configuration |
+| `rmm_get_system_status` | Get API system status |
+| `rmm_get_rate_limit` | Get current rate limit status |
+| `rmm_get_pagination_config` | Get pagination configuration |
 
 ## Available Resources
 
@@ -243,4 +243,4 @@ The server handles errors gracefully:
 
 ### Rate Limiting
 
-Use the `get-rate-limit` tool to check your current rate limit status. The API has rolling rate limits per account.
+Use the `rmm_get_rate_limit` tool to check your current rate limit status. The API has rolling rate limits per account.

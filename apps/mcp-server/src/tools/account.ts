@@ -1,6 +1,6 @@
 import type { DattoClient } from 'datto-rmm-api';
-import { normalizePagination, parsePageInfo } from '../utils/pagination.js';
-import { handleResponse, errorResult, successResult, type ToolResult } from '../utils/response.js';
+import { normalizePagination } from '../utils/pagination.js';
+import { handleResponse, successResponse, errorResponse, mapApiError, extractPageMeta, buildEnhanced, type ToolResult } from '../utils/response.js';
 import type * as T from '../types.js';
 
 /**
@@ -10,31 +10,9 @@ export async function getAccount(client: DattoClient): Promise<ToolResult> {
   try {
     const response = await client.GET('/v2/account');
     const data = handleResponse<T.Account>(response);
-
-    const lines = [
-      '# Account Information',
-      '',
-      `**Name:** ${data.name ?? 'N/A'}`,
-      `**UID:** ${data.uid ?? 'N/A'}`,
-      `**ID:** ${data.id ?? 'N/A'}`,
-      `**Currency:** ${data.currency ?? 'N/A'}`,
-      '',
-      '## Device Status',
-      `- Total Devices: ${data.devicesStatus?.numberOfDevices ?? 0}`,
-      `- Online: ${data.devicesStatus?.numberOfOnlineDevices ?? 0}`,
-      `- Offline: ${data.devicesStatus?.numberOfOfflineDevices ?? 0}`,
-    ];
-
-    if (data.descriptor) {
-      lines.push('');
-      lines.push('## Account Details');
-      lines.push(`- **Device Limit:** ${data.descriptor.deviceLimit ?? 'N/A'}`);
-      lines.push(`- **Time Zone:** ${data.descriptor.timeZone ?? 'N/A'}`);
-    }
-
-    return successResult(lines.join('\n'));
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error fetching account: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -57,47 +35,17 @@ export async function listSites(
         },
       },
     });
-    const data = handleResponse<T.SitesPage>(response);
 
-    if (!data.sites || data.sites.length === 0) {
-      return successResult('No sites found');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Sites (${pageInfo.count} total)`,
-      '',
-    ];
-
-    if (pageInfo.totalPages > 1) {
-      lines.push(`Page ${pageInfo.page} of ${pageInfo.totalPages}`);
-      lines.push('');
-    }
-
-    for (const site of data.sites) {
-      const deviceCount = site.devicesStatus?.numberOfDevices ?? 0;
-      const onlineCount = site.devicesStatus?.numberOfOnlineDevices ?? 0;
-      lines.push(`## ${site.name}`);
-      lines.push(`- **UID:** ${site.uid}`);
-      lines.push(`- **Devices:** ${deviceCount} (${onlineCount} online)`);
-      if (site.description) {
-        lines.push(`- **Description:** ${site.description}`);
-      }
-      lines.push('');
-    }
-
-    if (pageInfo.hasMore) {
-      lines.push(`_Use page=${pageInfo.page + 1} to see more results_`);
-    }
-
-    return successResult(lines.join('\n'));
+    const page = handleResponse<T.SitesPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.sites ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing sites: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
 /**
- * List all devices in the account.
+ * List all devices in the account, or devices in a specific site if siteUid is provided.
  */
 export async function listDevices(
   client: DattoClient,
@@ -109,10 +57,27 @@ export async function listDevices(
     deviceType?: string;
     operatingSystem?: string;
     filterId?: number;
+    siteUid?: string;
   }
 ): Promise<ToolResult> {
   try {
     const pagination = normalizePagination(args);
+
+    if (args.siteUid) {
+      const response = await client.GET('/v2/site/{siteUid}/devices', {
+        params: {
+          path: { siteUid: args.siteUid },
+          query: {
+            page: pagination.page,
+            max: pagination.max,
+            filterId: args.filterId,
+          },
+        },
+      });
+      const page = handleResponse<T.DevicesPage>(response);
+      const { count, next_page } = extractPageMeta(page);
+      return successResponse({ data: page.devices ?? [], count, next_page, _enhanced: buildEnhanced(page.devices ?? []) });
+    }
 
     const response = await client.GET('/v2/account/devices', {
       params: {
@@ -127,44 +92,11 @@ export async function listDevices(
         },
       },
     });
-    const data = handleResponse<T.DevicesPage>(response);
-
-    if (!data.devices || data.devices.length === 0) {
-      return successResult('No devices found');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Devices (${pageInfo.count} total)`,
-      '',
-    ];
-
-    if (pageInfo.totalPages > 1) {
-      lines.push(`Page ${pageInfo.page} of ${pageInfo.totalPages}`);
-      lines.push('');
-    }
-
-    for (const device of data.devices) {
-      const status = device.online ? 'Online' : 'Offline';
-      lines.push(`## ${device.hostname ?? 'Unknown'}`);
-      lines.push(`- **UID:** ${device.uid}`);
-      lines.push(`- **Status:** ${status}`);
-      lines.push(`- **Site:** ${device.siteName ?? 'N/A'}`);
-      lines.push(`- **Type:** ${device.deviceType?.type ?? 'N/A'}`);
-      lines.push(`- **OS:** ${device.operatingSystem ?? 'N/A'}`);
-      if (device.lastSeen) {
-        lines.push(`- **Last Seen:** ${device.lastSeen}`);
-      }
-      lines.push('');
-    }
-
-    if (pageInfo.hasMore) {
-      lines.push(`_Use page=${pageInfo.page + 1} to see more results_`);
-    }
-
-    return successResult(lines.join('\n'));
+    const page = handleResponse<T.DevicesPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.devices ?? [], count, next_page, _enhanced: buildEnhanced(page.devices ?? []) });
   } catch (err) {
-    return errorResult(`Error listing devices: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -186,30 +118,11 @@ export async function listUsers(
         },
       },
     });
-    const data = handleResponse<T.UsersPage>(response);
-
-    if (!data.users || data.users.length === 0) {
-      return successResult('No users found');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Users (${pageInfo.count} total)`,
-      '',
-    ];
-
-    for (const user of data.users) {
-      lines.push(`## ${user.email ?? user.username ?? 'Unknown'}`);
-      lines.push(`- **Username:** ${user.username ?? 'N/A'}`);
-      lines.push(`- **First Name:** ${user.firstName ?? 'N/A'}`);
-      lines.push(`- **Last Name:** ${user.lastName ?? 'N/A'}`);
-      lines.push(`- **Status:** ${user.status ?? 'N/A'}`);
-      lines.push('');
-    }
-
-    return successResult(lines.join('\n'));
+    const page = handleResponse<T.UsersPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.users ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing users: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -231,25 +144,11 @@ export async function listAccountVariables(
         },
       },
     });
-    const data = handleResponse<T.VariablesPage>(response);
-
-    if (!data.variables || data.variables.length === 0) {
-      return successResult('No account variables found');
-    }
-
-    const lines = [
-      '# Account Variables',
-      '',
-    ];
-
-    for (const variable of data.variables) {
-      const value = variable.masked ? '********' : (variable.value ?? 'N/A');
-      lines.push(`- **${variable.name}:** ${value}${variable.masked ? ' (masked)' : ''}`);
-    }
-
-    return successResult(lines.join('\n'));
+    const page = handleResponse<T.VariablesPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.variables ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing account variables: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
@@ -271,135 +170,110 @@ export async function listComponents(
         },
       },
     });
-    const data = handleResponse<T.ComponentsPage>(response);
-
-    if (!data.components || data.components.length === 0) {
-      return successResult('No components found');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Components (${pageInfo.count} total)`,
-      '',
-    ];
-
-    for (const component of data.components) {
-      lines.push(`## ${component.name ?? 'Unknown'}`);
-      lines.push(`- **UID:** ${component.uid}`);
-      lines.push(`- **Category:** ${component.categoryCode ?? 'N/A'}`);
-      if (component.description) {
-        lines.push(`- **Description:** ${component.description}`);
-      }
-      lines.push('');
-    }
-
-    return successResult(lines.join('\n'));
+    const page = handleResponse<T.ComponentsPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.components ?? [], count, next_page, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing components: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
 /**
- * List open alerts for the account.
+ * List alerts with flexible routing by status, site, and device.
  */
-export async function listOpenAlerts(
+export async function listAlerts(
   client: DattoClient,
-  args: { page?: number; max?: number; muted?: boolean }
+  args: {
+    status?: 'open' | 'resolved';
+    siteUid?: string;
+    deviceUid?: string;
+    page?: number;
+    max?: number;
+    muted?: boolean;
+  }
 ): Promise<ToolResult> {
   try {
     const pagination = normalizePagination(args);
+    const isResolved = args.status === 'resolved';
 
-    const response = await client.GET('/v2/account/alerts/open', {
-      params: {
-        query: {
-          page: pagination.page,
-          max: pagination.max,
-          muted: args.muted,
-        },
-      },
-    });
-    const data = handleResponse<T.AlertsPage>(response);
+    let response: Awaited<ReturnType<DattoClient['GET']>>;
 
-    if (!data.alerts || data.alerts.length === 0) {
-      return successResult('No open alerts found');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Open Alerts (${pageInfo.count} total)`,
-      '',
-    ];
-
-    if (pageInfo.totalPages > 1) {
-      lines.push(`Page ${pageInfo.page} of ${pageInfo.totalPages}`);
-      lines.push('');
-    }
-
-    for (const alert of data.alerts) {
-      lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
-      lines.push(`- **Device:** ${alert.alertSourceInfo?.deviceName ?? 'N/A'}`);
-      lines.push(`- **Device UID:** ${alert.alertSourceInfo?.deviceUid ?? 'N/A'}`);
-      lines.push(`- **Site:** ${alert.alertSourceInfo?.siteName ?? 'N/A'}`);
-      lines.push(`- **Created:** ${alert.timestamp ?? 'N/A'}`);
-      if (alert.diagnostics) {
-        lines.push(`- **Diagnostics:** ${alert.diagnostics}`);
+    if (args.deviceUid) {
+      // Device-scoped alerts take precedence
+      if (isResolved) {
+        response = await client.GET('/v2/device/{deviceUid}/alerts/resolved', {
+          params: {
+            path: { deviceUid: args.deviceUid },
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      } else {
+        response = await client.GET('/v2/device/{deviceUid}/alerts/open', {
+          params: {
+            path: { deviceUid: args.deviceUid },
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
       }
-      lines.push('');
+    } else if (args.siteUid) {
+      if (isResolved) {
+        response = await client.GET('/v2/site/{siteUid}/alerts/resolved', {
+          params: {
+            path: { siteUid: args.siteUid },
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      } else {
+        response = await client.GET('/v2/site/{siteUid}/alerts/open', {
+          params: {
+            path: { siteUid: args.siteUid },
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      }
+    } else {
+      if (isResolved) {
+        response = await client.GET('/v2/account/alerts/resolved', {
+          params: {
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      } else {
+        response = await client.GET('/v2/account/alerts/open', {
+          params: {
+            query: { page: pagination.page, max: pagination.max, muted: args.muted },
+          },
+        });
+      }
     }
 
-    if (pageInfo.hasMore) {
-      lines.push(`_Use page=${pageInfo.page + 1} to see more results_`);
-    }
-
-    return successResult(lines.join('\n'));
+    const page = handleResponse<T.AlertsPage>(response);
+    const { count, next_page } = extractPageMeta(page);
+    return successResponse({ data: page.alerts ?? [], count, next_page, _enhanced: buildEnhanced(page.alerts ?? []) });
   } catch (err) {
-    return errorResult(`Error listing open alerts: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
 
 /**
- * List resolved alerts for the account.
+ * Get API call metering summary for the account.
+ * This endpoint is not in the OpenAPI spec; use `as never` to bypass path typing.
  */
-export async function listResolvedAlerts(
+export async function getMeteringSummary(
   client: DattoClient,
-  args: { page?: number; max?: number; muted?: boolean }
+  args: { origin?: string }
 ): Promise<ToolResult> {
   try {
-    const pagination = normalizePagination(args);
-
-    const response = await client.GET('/v2/account/alerts/resolved', {
-      params: {
-        query: {
-          page: pagination.page,
-          max: pagination.max,
-          muted: args.muted,
-        },
-      },
+    type RawGet = (path: string, opts?: { params?: { query?: Record<string, string | undefined> } }) => Promise<{ data?: unknown; error?: unknown; response: Response }>;
+    const rawGet = client.GET as unknown as RawGet;
+    const response = await rawGet('/v2/metering/summary', {
+      params: { query: args.origin ? { origin: args.origin } : undefined },
     });
-    const data = handleResponse<T.AlertsPage>(response);
 
-    if (!data.alerts || data.alerts.length === 0) {
-      return successResult('No resolved alerts found');
-    }
-
-    const pageInfo = parsePageInfo(data);
-    const lines = [
-      `# Resolved Alerts (${pageInfo.count} total)`,
-      '',
-    ];
-
-    for (const alert of data.alerts) {
-      lines.push(`## Alert ${alert.alertUid}`);
-      lines.push(`- **Priority:** ${alert.priority ?? 'N/A'}`);
-      lines.push(`- **Device:** ${alert.alertSourceInfo?.deviceName ?? 'N/A'}`);
-      lines.push(`- **Resolved:** ${alert.resolvedOn ?? 'N/A'}`);
-      lines.push(`- **Resolved By:** ${alert.resolvedBy ?? 'N/A'}`);
-      lines.push('');
-    }
-
-    return successResult(lines.join('\n'));
+    const data = handleResponse<Record<string, unknown>>(response);
+    return successResponse({ data, _enhanced: {} });
   } catch (err) {
-    return errorResult(`Error listing resolved alerts: ${err instanceof Error ? err.message : String(err)}`);
+    return errorResponse(mapApiError(err));
   }
 }
+

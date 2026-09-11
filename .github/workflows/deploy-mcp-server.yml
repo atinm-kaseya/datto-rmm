@@ -1,0 +1,142 @@
+name: Deploy MCP Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/mcp-server/**"
+      - "crates/datto-api/**"
+      - "deploy/Dockerfile.mcp-server"
+      - "deploy/cloudformation/drmm-mcp-server.yaml"
+      - ".github/workflows/deploy-mcp-server.yml"
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: "Force deploy even without code changes"
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-mcp-server-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel an in-flight deploy
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: drmm-mcp-server
+  ECS_CLUSTER: sandbox-rmm
+  ECS_SERVICE: drmm-mcp-server
+  CFN_STACK: drmm-mcp-server
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Run tests
+        run: cargo test -p datto-rmm-mcp-server
+
+  build-and-push:
+    name: Build & Push
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # OIDC token for AWS authentication
+      contents: read
+    outputs:
+      image_uri: ${{ steps.build.outputs.image_uri }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        id: build
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          # Tag with git SHA — never :latest (SECURITY-10)
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+          docker build \
+            --file deploy/Dockerfile.mcp-server \
+            --tag "${IMAGE_URI}" \
+            .
+
+          docker push "${IMAGE_URI}"
+
+          echo "image_uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to ECS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    environment: sandbox
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy / update CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name "${CFN_STACK}" \
+            --template-file deploy/cloudformation/drmm-mcp-server.yaml \
+            --parameter-overrides \
+              ImageUri="${{ needs.build-and-push.outputs.image_uri }}" \
+              VpcId="${{ secrets.VPC_ID }}" \
+              PrivateSubnetIds="${{ secrets.PRIVATE_SUBNET_IDS }}" \
+              AlbListenerArn="${{ secrets.ALB_LISTENER_ARN }}" \
+              AlbSecurityGroupId="${{ secrets.ALB_SECURITY_GROUP_ID }}" \
+              EcsClusterName="${ECS_CLUSTER}" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
+
+      - name: Force new ECS deployment (pick up updated task definition)
+        run: |
+          aws ecs update-service \
+            --cluster "${ECS_CLUSTER}" \
+            --service "${ECS_SERVICE}" \
+            --force-new-deployment \
+            --no-cli-pager
+
+      - name: Wait for service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${ECS_CLUSTER}" \
+            --services "${ECS_SERVICE}"
+
+      - name: Verify health endpoint
+        run: |
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+            https://sandbox.rmm.datto.com/mcp/health || echo "000")
+          if [ "${STATUS}" != "200" ]; then
+            echo "Health check failed: HTTP ${STATUS}"
+            exit 1
+          fi
+          echo "Health check passed: HTTP ${STATUS}"

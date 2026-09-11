@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "datto_rmm",
+  "project_id": "1f58a720-4ed1-4a30-be34-2dd3d41a6a4a"
+}
